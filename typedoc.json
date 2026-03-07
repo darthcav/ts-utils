@@ -3,6 +3,12 @@
     "entryPoints": ["./src/index.ts"],
     "out": "./public",
     "readme": "README.md",
+    "externalSymbolLinkMappings": {
+        "@logtape/logtape": {
+            "Logger": "https://jsr.io/@logtape/logtape/doc/~/Logger",
+            "LogLevel": "https://jsr.io/@logtape/logtape/doc/~/LogLevel"
+        }
+    },
     "highlightLanguages": [
         "bash",
         "console",

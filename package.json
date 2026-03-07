@@ -1,7 +1,7 @@
 {
     "name": "@darthcav/ts-utils",
     "description": "A collection of utility functions for TypeScript applications and modules",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "author": {
         "name": "darthcav"
     },
@@ -18,7 +18,6 @@
     },
     "files": [
         "package.json",
-        "package-lock.json",
         "README.md",
         "LICENSE",
         "src/**/*.ts",
