@@ -1,13 +1,15 @@
 {
-    "name": "ts-utils",
+    "name": "@darthcav/ts-utils",
     "description": "A collection of utility functions for TypeScript applications and modules",
-    "version": "0.1.0",
+    "version": "0.0.1",
     "author": {
         "name": "darthcav"
     },
     "license": "Apache-2.0",
-    "private": true,
     "type": "module",
+    "publishConfig": {
+        "access": "public"
+    },
     "exports": {
         ".": {
             "types": "./dist/index.d.ts",
