@@ -28,7 +28,7 @@ export type LauncherFunction = (
  * @example
  * ```ts
  * import { getLogger } from "@logtape/logtape"
- * import { main } from "ts-utils"
+ * import { main } from "@darthcav/ts-utils"
  *
  * main("my-app", getLogger(["my-app"]), (name, logger) => {
  *     logger.info(`${name} is running`)

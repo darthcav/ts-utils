@@ -1,4 +1,4 @@
-# ts-utils
+# @darthcav/ts-utils
 
 ![Node][node-version] ![Version][version-image] ![CI][ci-badge] ![Coverage][coverage-badge]
 
@@ -15,7 +15,33 @@ A collection of utility functions for TypeScript applications and modules.
 - TypeDoc for API documentation
 - GitHub Actions CI/CD workflows
 
-## Getting Started
+## Installation
+
+```shell
+npm install @darthcav/ts-utils
+```
+
+## Usage
+
+### `main`
+
+Bootstraps an application process: logs startup information, registers handlers
+for `SIGINT`, `SIGTERM`, `uncaughtException`, and `unhandledRejection`, then
+delegates to an optional launcher function.
+
+```ts
+import { getLogger } from "@logtape/logtape"
+import { main } from "@darthcav/ts-utils"
+
+main("my-app", getLogger(["my-app"]), (name, logger) => {
+    logger.info(`${name} is running`)
+    // start servers, connect to databases, etc.
+})
+```
+
+For the full API reference see the [API Documentation][pages-url].
+
+## Development
 
 ```shell
 # Install dependencies

@@ -1,7 +1,7 @@
 {
     "name": "@darthcav/ts-utils",
     "description": "A collection of utility functions for TypeScript applications and modules",
-    "version": "0.0.1",
+    "version": "0.1.0",
     "author": {
         "name": "darthcav"
     },
@@ -40,7 +40,7 @@
     },
     "repository": {
         "type": "git",
-        "url": "git@github.com:darthcav/ts-utils.git"
+        "url": "git+https://github.com/darthcav/ts-utils.git"
     },
     "engines": {
         "node": ">=25"
