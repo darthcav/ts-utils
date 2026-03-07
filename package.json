@@ -1,6 +1,6 @@
 {
-    "name": "template-typescript",
-    "description": "A general-purpose TypeScript project template for Node.js >= 25",
+    "name": "ts-utils",
+    "description": "A collection of utility functions for TypeScript applications and modules",
     "version": "0.1.0",
     "author": {
         "name": "darthcav"
@@ -24,20 +24,21 @@
         "dist/**/*.js",
         "dist/**/*.js.map",
         "dist/**/*.d.ts",
-        "dist/**/*.d.ts.map",
-        "dist/**/*.d.tsx",
-        "dist/**/*.d.tsx.map"
+        "dist/**/*.d.ts.map"
     ],
+    "dependencies": {
+        "@logtape/logtape": "2.0.4"
+    },
     "devDependencies": {
-        "@biomejs/biome": "2.4.5",
-        "@types/node": "25.3.3",
+        "@biomejs/biome": "2.4.6",
+        "@types/node": "25.3.5",
         "asserttt": "1.0.1",
         "shx": "0.4.0",
         "typedoc": "0.28.17"
     },
     "repository": {
         "type": "git",
-        "url": "git@github.com:darthcav/template-typescript.git"
+        "url": "git@github.com:darthcav/ts-utils.git"
     },
     "engines": {
         "node": ">=25"
@@ -49,8 +50,6 @@
         "clean": "shx rm -rf dist/*",
         "\n===== Typecheck =====": "",
         "typecheck": "tsc --noEmit",
-        "\n===== Start =====": "",
-        "start": "node --env-file=.env.local src/start.ts",
         "\n===== Test =====": "",
         "test": "node --env-file=.env.local --test --test-reporter=spec 'src/**/*.test.ts'",
         "test:coverage": "node --env-file=.env.local --experimental-test-coverage --test 'src/**/*.test.ts'",

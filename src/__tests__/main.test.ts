@@ -1,18 +1,21 @@
 import assert from "node:assert/strict"
 import process from "node:process"
-import { afterEach, beforeEach, describe, it, mock } from "node:test"
-import main from "../index.ts"
+import { afterEach, beforeEach, mock, suite, test } from "node:test"
+import type { Logger } from "@logtape/logtape"
+import { main } from "../main.ts"
 
-describe("main", () => {
-    const errorMock = mock.fn()
+await suite("main", () => {
+    const logMock = mock.fn()
     const onMock = mock.fn()
     const exitMock = mock.fn()
 
+    const childLogger = { error: logMock } as unknown as Logger
+    const logger = { getChild: () => childLogger } as unknown as Logger
+
     beforeEach(() => {
-        errorMock.mock.resetCalls()
+        logMock.mock.resetCalls()
         onMock.mock.resetCalls()
         exitMock.mock.resetCalls()
-        mock.method(console, "error", errorMock)
         mock.method(process, "on", onMock)
         mock.method(process, "exit", exitMock)
     })
@@ -21,24 +24,24 @@ describe("main", () => {
         mock.restoreAll()
     })
 
-    it("should log startup information", () => {
-        main()
+    test("should log startup information", () => {
+        main("test-app", logger)
 
-        const messages = errorMock.mock.calls.map((c) => c.arguments[0])
+        const messages = logMock.mock.calls.map((c) => c.arguments[0])
         assert.ok(messages.some((m) => /Main process launched/.test(m)))
         assert.ok(messages.some((m) => /Process name:/.test(m)))
         assert.ok(messages.some((m) => /Node\.js environment:/.test(m)))
         assert.ok(messages.some((m) => /Node\.js process options:/.test(m)))
     })
 
-    it("should use empty fallbacks when NODE_ENV and NODE_OPTIONS are not set", () => {
+    test("should use empty fallbacks when NODE_ENV and NODE_OPTIONS are not set", () => {
         const savedEnv = process.env["NODE_ENV"]
         const savedOptions = process.env["NODE_OPTIONS"]
         delete process.env["NODE_ENV"]
         delete process.env["NODE_OPTIONS"]
         try {
-            main()
-            const messages = errorMock.mock.calls.map((c) => c.arguments[0])
+            main("test-app", logger)
+            const messages = logMock.mock.calls.map((c) => c.arguments[0])
             assert.ok(messages.some((m) => /Node\.js environment: $/.test(m)))
             assert.ok(messages.some((m) => /Node\.js process options:/.test(m)))
         } finally {
@@ -51,8 +54,8 @@ describe("main", () => {
         }
     })
 
-    it("should register SIGINT handler", () => {
-        main()
+    test("should register SIGINT handler", () => {
+        main("test-app", logger)
 
         const sigintCall = onMock.mock.calls.find(
             (c) => c.arguments[0] === "SIGINT",
@@ -60,8 +63,8 @@ describe("main", () => {
         assert.ok(sigintCall, "SIGINT handler not registered")
     })
 
-    it("should register SIGTERM handler", () => {
-        main()
+    test("should register SIGTERM handler", () => {
+        main("test-app", logger)
 
         const sigtermCall = onMock.mock.calls.find(
             (c) => c.arguments[0] === "SIGTERM",
@@ -69,8 +72,8 @@ describe("main", () => {
         assert.ok(sigtermCall, "SIGTERM handler not registered")
     })
 
-    it("should register uncaughtException handler", () => {
-        main()
+    test("should register uncaughtException handler", () => {
+        main("test-app", logger)
 
         const call = onMock.mock.calls.find(
             (c) => c.arguments[0] === "uncaughtException",
@@ -78,8 +81,8 @@ describe("main", () => {
         assert.ok(call, "uncaughtException handler not registered")
     })
 
-    it("should register unhandledRejection handler", () => {
-        main()
+    test("should register unhandledRejection handler", () => {
+        main("test-app", logger)
 
         const call = onMock.mock.calls.find(
             (c) => c.arguments[0] === "unhandledRejection",
@@ -87,8 +90,8 @@ describe("main", () => {
         assert.ok(call, "unhandledRejection handler not registered")
     })
 
-    it("should exit on SIGINT", () => {
-        main()
+    test("should exit on SIGINT", () => {
+        main("test-app", logger)
 
         const sigintCall = onMock.mock.calls.find(
             (c) => c.arguments[0] === "SIGINT",
@@ -98,7 +101,7 @@ describe("main", () => {
         handler("SIGINT")
 
         assert.ok(
-            errorMock.mock.calls.some((c) =>
+            logMock.mock.calls.some((c) =>
                 /Received signal: SIGINT/.test(c.arguments[0]),
             ),
         )
@@ -106,8 +109,8 @@ describe("main", () => {
         assert.equal(exitMock.mock.calls[0]?.arguments[0], 0)
     })
 
-    it("should exit on SIGTERM", () => {
-        main()
+    test("should exit on SIGTERM", () => {
+        main("test-app", logger)
 
         const sigtermCall = onMock.mock.calls.find(
             (c) => c.arguments[0] === "SIGTERM",
@@ -117,7 +120,7 @@ describe("main", () => {
         handler("SIGTERM")
 
         assert.ok(
-            errorMock.mock.calls.some((c) =>
+            logMock.mock.calls.some((c) =>
                 /Received signal: SIGTERM/.test(c.arguments[0]),
             ),
         )
@@ -125,8 +128,8 @@ describe("main", () => {
         assert.equal(exitMock.mock.calls[0]?.arguments[0], 0)
     })
 
-    it("should exit on uncaughtException", () => {
-        main()
+    test("should exit on uncaughtException", () => {
+        main("test-app", logger)
 
         const call = onMock.mock.calls.find(
             (c) => c.arguments[0] === "uncaughtException",
@@ -136,12 +139,12 @@ describe("main", () => {
         handler(new Error("test error"), "unhandledException")
 
         assert.ok(
-            errorMock.mock.calls.some((c) =>
+            logMock.mock.calls.some((c) =>
                 /Uncaught exception:/.test(c.arguments[0]),
             ),
         )
         assert.ok(
-            errorMock.mock.calls.some((c) =>
+            logMock.mock.calls.some((c) =>
                 /Exception origin:/.test(c.arguments[0]),
             ),
         )
@@ -149,8 +152,8 @@ describe("main", () => {
         assert.equal(exitMock.mock.calls[0]?.arguments[0], 1)
     })
 
-    it("should exit on unhandledRejection", () => {
-        main()
+    test("should exit on unhandledRejection", () => {
+        main("test-app", logger)
 
         const call = onMock.mock.calls.find(
             (c) => c.arguments[0] === "unhandledRejection",
@@ -160,12 +163,12 @@ describe("main", () => {
         handler("some reason", Promise.resolve())
 
         assert.ok(
-            errorMock.mock.calls.some((c) =>
+            logMock.mock.calls.some((c) =>
                 /Unhandled promise rejection/.test(c.arguments[0]),
             ),
         )
         assert.ok(
-            errorMock.mock.calls.some((c) => /Reason:/.test(c.arguments[0])),
+            logMock.mock.calls.some((c) => /Reason:/.test(c.arguments[0])),
         )
         assert.equal(exitMock.mock.callCount(), 1)
         assert.equal(exitMock.mock.calls[0]?.arguments[0], 1)

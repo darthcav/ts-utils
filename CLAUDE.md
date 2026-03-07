@@ -11,7 +11,6 @@
 
 - `npm run build` — compile TypeScript to JavaScript
 - `npm run clean` — remove compiled output
-- `npm start` — run once with .env.local
 - `npm run typecheck` — type-check without emitting
 - `npm test` — run tests (Node.js built-in test runner)
 - `npm run test:coverage` — run tests with coverage
