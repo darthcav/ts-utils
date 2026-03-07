@@ -9,7 +9,7 @@ await suite("main", () => {
     const onMock = mock.fn()
     const exitMock = mock.fn()
 
-    const childLogger = { error: logMock } as unknown as Logger
+    const childLogger = { info: logMock, error: logMock } as unknown as Logger
     const logger = { getChild: () => childLogger } as unknown as Logger
 
     beforeEach(() => {

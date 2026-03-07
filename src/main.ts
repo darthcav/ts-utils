@@ -7,12 +7,12 @@ import type { Logger } from "@logtape/logtape"
  *
  * @param name - Application name, forwarded from {@link main}.
  * @param logger - Logger instance, forwarded from {@link main}.
- * @param parts - Additional arguments forwarded from the {@link main} call.
+ * @param args - Additional arguments forwarded from the {@link main} call.
  */
 export type LauncherFunction = (
     name: string,
     logger: Logger,
-    ...parts: unknown[]
+    ...args: unknown[]
 ) => void
 
 /**
@@ -22,8 +22,9 @@ export type LauncherFunction = (
  *
  * @param name - Human-readable application name used in log output.
  * @param logger - Logger instance used for all startup and lifecycle messages.
- * @param __f - Optional launcher function called after setup, receiving `name`,
- *   `logger`, and any additional arguments passed after `__f`.
+ * @param args - Optional launcher function followed by additional arguments forwarded
+ *   to it. If additional arguments are provided, the first argument must be a
+ *   {@link LauncherFunction}.
  *
  * @example
  * ```ts
@@ -39,14 +40,15 @@ export type LauncherFunction = (
 export function main(
     name: string,
     logger: Logger,
-    ...[__f, ...parts]: [LauncherFunction?, ...unknown[]]
+    ...args: [] | [LauncherFunction, ...unknown[]]
 ): void {
+    const [__f, ...parts] = args
     const __logger = logger.getChild(["main"])
 
-    __logger.error(`Main process launched [${title} :: ${pid}]`)
-    __logger.error(`Process name: ${name}`)
-    __logger.error(`Node.js environment: ${env?.["NODE_ENV"] ?? ""}`)
-    __logger.error(
+    __logger.info(`Main process launched [${title} :: ${pid}]`)
+    __logger.info(`Process name: ${name}`)
+    __logger.info(`Node.js environment: ${env?.["NODE_ENV"] ?? ""}`)
+    __logger.info(
         `Node.js process options: ${execArgv.concat(env?.["NODE_OPTIONS"] ?? []).join(" | ")}`,
     )
 
