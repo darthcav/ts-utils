@@ -3,11 +3,10 @@ import type { Logger } from "@logtape/logtape"
 
 /**
  * A function that performs the actual application launch after process
- * lifecycle handlers have been set up by {@link main}.
- *
- * @param logger - Logger instance, forwarded from {@link main}.
+ * lifecycle handlers have been set up by {@link main}. Use a closure to
+ * capture any context needed (e.g. a logger).
  */
-export type LauncherFunction = (logger: Logger) => void
+export type LauncherFunction = () => void
 
 /**
  * Bootstraps an application process: logs startup information, registers
@@ -17,7 +16,7 @@ export type LauncherFunction = (logger: Logger) => void
  * @param name - Human-readable application name used in log output.
  * @param logger - Logger instance used for all startup and lifecycle messages.
  * @param launcher - Optional function invoked after all process handlers are
- *   registered. Use a closure to capture any additional context needed.
+ *   registered. Use a closure to capture any context needed (e.g. a logger).
  *
  * @example Without a launcher:
  * ```ts
@@ -29,7 +28,8 @@ export type LauncherFunction = (logger: Logger) => void
  *
  * @example With a launcher:
  * ```ts
- * main("my-app", getLogger(["my-app"]), (logger) => {
+ * const logger = getLogger(["my-app"])
+ * main("my-app", logger, () => {
  *     logger.info(`Application is running`)
  *     // start servers, connect to databases, etc.
  * })
@@ -37,7 +37,8 @@ export type LauncherFunction = (logger: Logger) => void
  *
  * @example Disable the built-in interruption handler to manage shutdown yourself:
  * ```ts
- * main("my-app", getLogger(["my-app"]), false, (logger) => {
+ * const logger = getLogger(["my-app"])
+ * main("my-app", logger, false, () => {
  *     const server = createServer(...)
  *     process.on("SIGTERM", () => server.close(() => process.exit(0)))
  * })
@@ -58,7 +59,7 @@ export function main(
  *   database connections). Can be omitted entirely — pass the launcher directly
  *   as the third argument to use the default (`true`).
  * @param launcher - Optional function invoked after all process handlers are
- *   registered. Use a closure to capture any additional context needed.
+ *   registered. Use a closure to capture any context needed (e.g. a logger).
  */
 export function main(
     name: string,
@@ -93,7 +94,7 @@ export function main(
 
     if (defaultInterruptionHandler) {
         for (const signal of ["SIGINT", "SIGTERM"] as const) {
-            process.on(signal, (signal) => {
+            process.once(signal, (signal) => {
                 __logger.error(
                     `Process interrupted. Received signal: ${signal}`,
                 )
@@ -103,18 +104,19 @@ export function main(
     }
 
     process.on("uncaughtException", (error, origin) => {
-        __logger.error(`Uncaught exception: ${error}`)
+        __logger.error(
+            `Uncaught exception: ${error instanceof Error ? (error.stack ?? String(error)) : String(error)}`,
+        )
         __logger.error(`Exception origin: ${origin}`)
         process.exit(1)
     })
 
-    process.on("unhandledRejection", (reason, p) => {
+    process.on("unhandledRejection", (reason) => {
         __logger.error(
-            `Unhandled promise rejection at promise: ${JSON.stringify(p)}`,
+            `Unhandled promise rejection. Reason:\n${reason instanceof Error ? (reason.stack ?? String(reason)) : String(reason)}`,
         )
-        __logger.error(`Reason:\n${reason}`)
         process.exit(1)
     })
 
-    __f?.(logger)
+    __f?.()
 }
