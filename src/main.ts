@@ -6,9 +6,8 @@ import type { Logger } from "@logtape/logtape"
  * lifecycle handlers have been set up by {@link main}.
  *
  * @param logger - Logger instance, forwarded from {@link main}.
- * @param args - Additional arguments forwarded from the {@link main} call.
  */
-export type LauncherFunction = (logger: Logger, ...args: unknown[]) => void
+export type LauncherFunction = (logger: Logger) => void
 
 /**
  * Bootstraps an application process: logs startup information, registers
@@ -17,20 +16,20 @@ export type LauncherFunction = (logger: Logger, ...args: unknown[]) => void
  *
  * @param name - Human-readable application name used in log output.
  * @param logger - Logger instance used for all startup and lifecycle messages.
- * @param defaultInterruptionHandler - When `true` (default), registers `SIGINT`
- *   and `SIGTERM` handlers that log and exit cleanly. Set to `false` when the
- *   application manages its own graceful shutdown (e.g. closing servers or
- *   database connections).
- * @param args - Optional launcher function followed by additional arguments forwarded
- *   to it. If additional arguments are provided, the first argument must be a
- *   {@link LauncherFunction}.
+ * @param launcher - Optional function invoked after all process handlers are
+ *   registered. Use a closure to capture any additional context needed.
  *
- * @example
+ * @example Without a launcher:
  * ```ts
  * import { getLogger } from "@logtape/logtape"
  * import { main } from "@darthcav/ts-utils"
  *
- * main("my-app", getLogger(["my-app"]), true, (logger) => {
+ * main("my-app", getLogger(["my-app"]))
+ * ```
+ *
+ * @example With a launcher:
+ * ```ts
+ * main("my-app", getLogger(["my-app"]), (logger) => {
  *     logger.info(`Application is running`)
  *     // start servers, connect to databases, etc.
  * })
@@ -47,10 +46,42 @@ export type LauncherFunction = (logger: Logger, ...args: unknown[]) => void
 export function main(
     name: string,
     logger: Logger,
-    defaultInterruptionHandler: boolean = true,
-    ...args: [] | [LauncherFunction, ...unknown[]]
+    launcher?: LauncherFunction,
+): void
+
+/**
+ * @param name - Human-readable application name used in log output.
+ * @param logger - Logger instance used for all startup and lifecycle messages.
+ * @param defaultInterruptionHandler - When `true` (default), registers `SIGINT`
+ *   and `SIGTERM` handlers that log and exit cleanly. Set to `false` when the
+ *   application manages its own graceful shutdown (e.g. closing servers or
+ *   database connections). Can be omitted entirely — pass the launcher directly
+ *   as the third argument to use the default (`true`).
+ * @param launcher - Optional function invoked after all process handlers are
+ *   registered. Use a closure to capture any additional context needed.
+ */
+export function main(
+    name: string,
+    logger: Logger,
+    defaultInterruptionHandler: boolean,
+    launcher?: LauncherFunction,
+): void
+export function main(
+    name: string,
+    logger: Logger,
+    defaultInterruptionHandlerOrLauncher?: boolean | LauncherFunction,
+    launcher?: LauncherFunction,
 ): void {
-    const [__f, ...parts] = args
+    let defaultInterruptionHandler = true
+    let __f: LauncherFunction | undefined
+
+    if (typeof defaultInterruptionHandlerOrLauncher === "boolean") {
+        defaultInterruptionHandler = defaultInterruptionHandlerOrLauncher
+        __f = launcher
+    } else {
+        __f = defaultInterruptionHandlerOrLauncher
+    }
+
     const __logger = logger.getChild(["main"])
 
     __logger.info(`Main process launched [${title} :: ${pid}]`)
@@ -85,5 +116,5 @@ export function main(
         process.exit(1)
     })
 
-    __f?.(logger, ...parts)
+    __f?.(logger)
 }

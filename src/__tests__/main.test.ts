@@ -175,6 +175,13 @@ await suite("main", () => {
 
     test("should invoke the launcher function when provided", () => {
         const launcher = mock.fn()
+        main("test-app", logger, launcher)
+        assert.equal(launcher.mock.callCount(), 1)
+        assert.equal(launcher.mock.calls[0]?.arguments[0], logger)
+    })
+
+    test("should invoke the launcher function when provided with explicit defaultInterruptionHandler", () => {
+        const launcher = mock.fn()
         main("test-app", logger, true, launcher)
         assert.equal(launcher.mock.callCount(), 1)
         assert.equal(launcher.mock.calls[0]?.arguments[0], logger)

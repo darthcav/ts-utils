@@ -35,7 +35,7 @@ import { getConsoleLogger, main } from "@darthcav/ts-utils"
 
 const logger = await getConsoleLogger("my-app")
 
-main("my-app", logger, true, (logger) => {
+main("my-app", logger, (logger) => {
     logger.info(`Application is running`)
     // start servers, connect to databases, etc.
 })
@@ -56,13 +56,19 @@ defaults to `true`), always registers handlers for `uncaughtException` and
 `defaultInterruptionHandler` to `false` when the application manages its own
 graceful shutdown (e.g. closing servers or database connections).
 
+`defaultInterruptionHandler` can always be omitted — pass the launcher directly
+as the third argument. Use a closure inside the launcher to capture any
+additional context your application needs.
+
 ```ts
 import { getLogger } from "@logtape/logtape"
 import { main } from "@darthcav/ts-utils"
 
-main("my-app", getLogger(["my-app"]), true, (logger) => {
+const config = loadConfig()
+
+main("my-app", getLogger(["my-app"]), (logger) => {
     logger.info(`Application is running`)
-    // start servers, connect to databases, etc.
+    startServer(config) // config captured via closure
 })
 ```
 
@@ -108,7 +114,7 @@ public/             # Documentation output (generated)
 [Apache-2.0](LICENSE)
 
 [node-version]: https://img.shields.io/badge/node-%3E%3D25-orange.svg?style=flat-square
-[version-image]: https://img.shields.io/badge/version-0.4.0-blue.svg?style=flat-square
+[version-image]: https://img.shields.io/badge/version-0.5.0-blue.svg?style=flat-square
 [ci-badge]: https://github.com/darthcav/ts-utils/actions/workflows/tests.yml/badge.svg
 [coverage-badge]: https://img.shields.io/badge/coverage-check%20CI-yellow.svg?style=flat-square
 [pages-url]: https://darthcav.github.io/ts-utils/
