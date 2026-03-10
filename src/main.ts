@@ -10,7 +10,7 @@ export type LauncherFunction = () => void
 
 /**
  * Bootstraps an application process: logs startup information, registers
- * handlers for `SIGINT`, `SIGTERM`, `uncaughtException`, and
+ * handlers for `SIGINT`, `SIGTERM`, `SIGKILL`, `uncaughtException`, and
  * `unhandledRejection`, then delegates to the optional launcher function.
  *
  * @param name - Human-readable application name used in log output.
@@ -101,6 +101,10 @@ export function main(
                 process.exit(0)
             })
         }
+        process.on("SIGKILL", (signal) => {
+            __logger.error(`Process killed. Received signal: ${signal}`)
+            process.exit(1)
+        })
     }
 
     process.on("uncaughtException", (error, origin) => {
