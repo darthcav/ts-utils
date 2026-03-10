@@ -35,7 +35,7 @@ import { getConsoleLogger, main } from "@darthcav/ts-utils"
 
 const logger = await getConsoleLogger("my-app")
 
-main("my-app", logger, (logger) => {
+main("my-app", logger, true, (logger) => {
     logger.info(`Application is running`)
     // start servers, connect to databases, etc.
 })
@@ -49,15 +49,18 @@ const logger = await getConsoleLogger("my-app", "debug")
 
 ### `main`
 
-Bootstraps an application process: logs startup information, registers handlers
-for `SIGINT`, `SIGTERM`, `uncaughtException`, and `unhandledRejection`, then
-delegates to an optional launcher function.
+Bootstraps an application process: logs startup information, optionally registers
+handlers for `SIGINT` and `SIGTERM` (controlled by `defaultInterruptionHandler`,
+defaults to `true`), always registers handlers for `uncaughtException` and
+`unhandledRejection`, then delegates to an optional launcher function. Set
+`defaultInterruptionHandler` to `false` when the application manages its own
+graceful shutdown (e.g. closing servers or database connections).
 
 ```ts
 import { getLogger } from "@logtape/logtape"
 import { main } from "@darthcav/ts-utils"
 
-main("my-app", getLogger(["my-app"]), (logger) => {
+main("my-app", getLogger(["my-app"]), true, (logger) => {
     logger.info(`Application is running`)
     // start servers, connect to databases, etc.
 })
@@ -105,7 +108,7 @@ public/             # Documentation output (generated)
 [Apache-2.0](LICENSE)
 
 [node-version]: https://img.shields.io/badge/node-%3E%3D25-orange.svg?style=flat-square
-[version-image]: https://img.shields.io/badge/version-0.3.0-blue.svg?style=flat-square
+[version-image]: https://img.shields.io/badge/version-0.4.0-blue.svg?style=flat-square
 [ci-badge]: https://github.com/darthcav/ts-utils/actions/workflows/tests.yml/badge.svg
 [coverage-badge]: https://img.shields.io/badge/coverage-check%20CI-yellow.svg?style=flat-square
 [pages-url]: https://darthcav.github.io/ts-utils/

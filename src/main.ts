@@ -17,6 +17,10 @@ export type LauncherFunction = (logger: Logger, ...args: unknown[]) => void
  *
  * @param name - Human-readable application name used in log output.
  * @param logger - Logger instance used for all startup and lifecycle messages.
+ * @param defaultInterruptionHandler - When `true` (default), registers `SIGINT`
+ *   and `SIGTERM` handlers that log and exit cleanly. Set to `false` when the
+ *   application manages its own graceful shutdown (e.g. closing servers or
+ *   database connections).
  * @param args - Optional launcher function followed by additional arguments forwarded
  *   to it. If additional arguments are provided, the first argument must be a
  *   {@link LauncherFunction}.
@@ -26,15 +30,24 @@ export type LauncherFunction = (logger: Logger, ...args: unknown[]) => void
  * import { getLogger } from "@logtape/logtape"
  * import { main } from "@darthcav/ts-utils"
  *
- * main("my-app", getLogger(["my-app"]), (logger) => {
+ * main("my-app", getLogger(["my-app"]), true, (logger) => {
  *     logger.info(`Application is running`)
  *     // start servers, connect to databases, etc.
+ * })
+ * ```
+ *
+ * @example Disable the built-in interruption handler to manage shutdown yourself:
+ * ```ts
+ * main("my-app", getLogger(["my-app"]), false, (logger) => {
+ *     const server = createServer(...)
+ *     process.on("SIGTERM", () => server.close(() => process.exit(0)))
  * })
  * ```
  */
 export function main(
     name: string,
     logger: Logger,
+    defaultInterruptionHandler: boolean = true,
     ...args: [] | [LauncherFunction, ...unknown[]]
 ): void {
     const [__f, ...parts] = args
@@ -47,11 +60,13 @@ export function main(
         `Node.js process options: ${execArgv.concat(env?.["NODE_OPTIONS"] ?? []).join(" | ")}`,
     )
 
-    for (const signal of ["SIGINT", "SIGTERM"] as const) {
-        process.on(signal, (signal) => {
-            __logger.error(`Received signal: ${signal}`)
-            process.exit(0)
-        })
+    if (defaultInterruptionHandler) {
+        for (const signal of ["SIGINT", "SIGTERM"] as const) {
+            process.on(signal, (signal) => {
+                __logger.error(`Process interrupted. Received signal: ${signal}`)
+                process.exit(0)
+            })
+        }
     }
 
     process.on("uncaughtException", (error, origin) => {

@@ -72,6 +72,19 @@ await suite("main", () => {
         assert.ok(sigtermCall, "SIGTERM handler not registered")
     })
 
+    test("should not register SIGINT or SIGTERM handlers when defaultInterruptionHandler is false", () => {
+        main("test-app", logger, false)
+
+        const sigintCall = onMock.mock.calls.find(
+            (c) => c.arguments[0] === "SIGINT",
+        )
+        const sigtermCall = onMock.mock.calls.find(
+            (c) => c.arguments[0] === "SIGTERM",
+        )
+        assert.equal(sigintCall, undefined, "SIGINT handler should not be registered")
+        assert.equal(sigtermCall, undefined, "SIGTERM handler should not be registered")
+    })
+
     test("should register uncaughtException handler", () => {
         main("test-app", logger)
 
@@ -150,6 +163,13 @@ await suite("main", () => {
         )
         assert.equal(exitMock.mock.callCount(), 1)
         assert.equal(exitMock.mock.calls[0]?.arguments[0], 1)
+    })
+
+    test("should invoke the launcher function when provided", () => {
+        const launcher = mock.fn()
+        main("test-app", logger, true, launcher)
+        assert.equal(launcher.mock.callCount(), 1)
+        assert.equal(launcher.mock.calls[0]?.arguments[0], logger)
     })
 
     test("should exit on unhandledRejection", () => {
