@@ -81,8 +81,16 @@ await suite("main", () => {
         const sigtermCall = onMock.mock.calls.find(
             (c) => c.arguments[0] === "SIGTERM",
         )
-        assert.equal(sigintCall, undefined, "SIGINT handler should not be registered")
-        assert.equal(sigtermCall, undefined, "SIGTERM handler should not be registered")
+        assert.equal(
+            sigintCall,
+            undefined,
+            "SIGINT handler should not be registered",
+        )
+        assert.equal(
+            sigtermCall,
+            undefined,
+            "SIGTERM handler should not be registered",
+        )
     })
 
     test("should register uncaughtException handler", () => {

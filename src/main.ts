@@ -63,7 +63,9 @@ export function main(
     if (defaultInterruptionHandler) {
         for (const signal of ["SIGINT", "SIGTERM"] as const) {
             process.on(signal, (signal) => {
-                __logger.error(`Process interrupted. Received signal: ${signal}`)
+                __logger.error(
+                    `Process interrupted. Received signal: ${signal}`,
+                )
                 process.exit(0)
             })
         }
