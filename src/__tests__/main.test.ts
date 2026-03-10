@@ -60,7 +60,7 @@ await suite("main", () => {
     test("should register SIGINT handler", () => {
         main("test-app", logger)
 
-        const sigintCall = onceMock.mock.calls.find(
+        const sigintCall = onMock.mock.calls.find(
             (c) => c.arguments[0] === "SIGINT",
         )
         assert.ok(sigintCall, "SIGINT handler not registered")
@@ -69,7 +69,7 @@ await suite("main", () => {
     test("should register SIGTERM handler", () => {
         main("test-app", logger)
 
-        const sigtermCall = onceMock.mock.calls.find(
+        const sigtermCall = onMock.mock.calls.find(
             (c) => c.arguments[0] === "SIGTERM",
         )
         assert.ok(sigtermCall, "SIGTERM handler not registered")
@@ -78,10 +78,10 @@ await suite("main", () => {
     test("should not register SIGINT or SIGTERM handlers when defaultInterruptionHandler is false", () => {
         main("test-app", logger, false)
 
-        const sigintCall = onceMock.mock.calls.find(
+        const sigintCall = onMock.mock.calls.find(
             (c) => c.arguments[0] === "SIGINT",
         )
-        const sigtermCall = onceMock.mock.calls.find(
+        const sigtermCall = onMock.mock.calls.find(
             (c) => c.arguments[0] === "SIGTERM",
         )
         assert.equal(
@@ -117,7 +117,7 @@ await suite("main", () => {
     test("should exit on SIGINT", () => {
         main("test-app", logger)
 
-        const sigintCall = onceMock.mock.calls.find(
+        const sigintCall = onMock.mock.calls.find(
             (c) => c.arguments[0] === "SIGINT",
         )
         assert.ok(sigintCall)
@@ -136,7 +136,7 @@ await suite("main", () => {
     test("should exit on SIGTERM", () => {
         main("test-app", logger)
 
-        const sigtermCall = onceMock.mock.calls.find(
+        const sigtermCall = onMock.mock.calls.find(
             (c) => c.arguments[0] === "SIGTERM",
         )
         assert.ok(sigtermCall)
@@ -179,6 +179,27 @@ await suite("main", () => {
         assert.equal(exitMock.mock.calls[0]?.arguments[0], 1)
     })
 
+    test("should exit on uncaughtException with an Error and no stack", () => {
+        main("test-app", logger)
+
+        const call = onMock.mock.calls.find(
+            (c) => c.arguments[0] === "uncaughtException",
+        )
+        assert.ok(call)
+        const handler = call.arguments[1]
+        const error = new Error("test error")
+        delete error.stack
+        handler(error, "unhandledException")
+
+        assert.ok(
+            logMock.mock.calls.some((c) =>
+                /Uncaught exception: Error: test error/.test(c.arguments[0]),
+            ),
+        )
+        assert.equal(exitMock.mock.callCount(), 1)
+        assert.equal(exitMock.mock.calls[0]?.arguments[0], 1)
+    })
+
     test("should exit on uncaughtException with a non-Error value", () => {
         main("test-app", logger)
 
@@ -210,6 +231,29 @@ await suite("main", () => {
         main("test-app", logger, true, launcher)
         assert.equal(launcher.mock.callCount(), 1)
         assert.equal(launcher.mock.calls[0]?.arguments.length, 0)
+    })
+
+    test("should exit on unhandledRejection with an Error reason and no stack", () => {
+        main("test-app", logger)
+
+        const call = onMock.mock.calls.find(
+            (c) => c.arguments[0] === "unhandledRejection",
+        )
+        assert.ok(call)
+        const handler = call.arguments[1]
+        const error = new Error("rejection error")
+        delete error.stack
+        handler(error)
+
+        assert.ok(
+            logMock.mock.calls.some((c) =>
+                /Unhandled promise rejection\. Reason:[\s\S]*Error: rejection error/.test(
+                    c.arguments[0],
+                ),
+            ),
+        )
+        assert.equal(exitMock.mock.callCount(), 1)
+        assert.equal(exitMock.mock.calls[0]?.arguments[0], 1)
     })
 
     test("should exit on unhandledRejection with a non-Error reason", () => {

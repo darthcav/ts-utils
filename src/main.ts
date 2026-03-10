@@ -87,9 +87,9 @@ export function main(
 
     __logger.info(`Main process launched [${title} :: ${pid}]`)
     __logger.info(`Process name: ${name}`)
-    __logger.info(`Node.js environment: ${env?.["NODE_ENV"] ?? ""}`)
+    __logger.info(`Node.js environment: ${env["NODE_ENV"] ?? ""}`)
     __logger.info(
-        `Node.js process options: ${execArgv.concat(env?.["NODE_OPTIONS"] ?? []).join(" | ")}`,
+        `Node.js process options: ${execArgv.concat(env["NODE_OPTIONS"] ?? []).join(" | ")}`,
     )
 
     if (defaultInterruptionHandler) {
