@@ -96,47 +96,6 @@ await suite("main", () => {
         )
     })
 
-    test("should register SIGKILL handler", () => {
-        main("test-app", logger)
-
-        const sigkillCall = onMock.mock.calls.find(
-            (c) => c.arguments[0] === "SIGKILL",
-        )
-        assert.ok(sigkillCall, "SIGKILL handler not registered")
-    })
-
-    test("should not register SIGKILL handler when defaultInterruptionHandler is false", () => {
-        main("test-app", logger, false)
-
-        const sigkillCall = onMock.mock.calls.find(
-            (c) => c.arguments[0] === "SIGKILL",
-        )
-        assert.equal(
-            sigkillCall,
-            undefined,
-            "SIGKILL handler should not be registered",
-        )
-    })
-
-    test("should exit on SIGKILL", () => {
-        main("test-app", logger)
-
-        const sigkillCall = onMock.mock.calls.find(
-            (c) => c.arguments[0] === "SIGKILL",
-        )
-        assert.ok(sigkillCall)
-        const handler = sigkillCall.arguments[1]
-        handler("SIGKILL")
-
-        assert.ok(
-            logMock.mock.calls.some((c) =>
-                /Received signal: SIGKILL/.test(c.arguments[0]),
-            ),
-        )
-        assert.equal(exitMock.mock.callCount(), 1)
-        assert.equal(exitMock.mock.calls[0]?.arguments[0], 1)
-    })
-
     test("should register uncaughtException handler", () => {
         main("test-app", logger)
 

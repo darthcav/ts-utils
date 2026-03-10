@@ -50,7 +50,7 @@ const logger = await getConsoleLogger("my-app", "debug")
 ### `main`
 
 Bootstraps an application process: logs startup information, optionally registers
-handlers for `SIGINT`, `SIGTERM`, and `SIGKILL` (controlled by
+handlers for `SIGINT` and `SIGTERM` (controlled by
 `defaultInterruptionHandler`, defaults to `true`), always registers handlers for
 `uncaughtException` and `unhandledRejection`, then delegates to an optional
 launcher function. Set `defaultInterruptionHandler` to `false` when the
