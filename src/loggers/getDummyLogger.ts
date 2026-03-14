@@ -1,6 +1,5 @@
 import type { Logger, LogLevel, LogRecord } from "@logtape/logtape"
-
-const noop = (): void => {}
+import noop from "../noop.ts"
 
 /**
  * Returns a no-op {@link Logger} useful as a placeholder in tests.

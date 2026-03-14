@@ -77,6 +77,18 @@ millisecondsToString(90_000)    // "1m 30s"
 millisecondsToString(5_000)     // "5s"
 ```
 
+### `noop`
+
+A no-op function that does nothing and returns `void`. Useful as a placeholder
+callback or default handler.
+
+```ts
+import { noop } from "@darthcav/ts-utils"
+
+setTimeout(noop, 1000)
+element.addEventListener("click", noop)
+```
+
 ### `getDummyLogger`
 
 Returns a no-op `Logger` useful as a placeholder in tests. All logging methods
@@ -150,6 +162,7 @@ npm run doc
 src/
   index.ts          # Public API entry point
   main.ts           # Main module
+  noop.ts           # No-op function
   loggers/          # Logger utilities
   __tests__/        # Test files
 dist/               # Compiled output (generated)

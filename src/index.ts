@@ -9,6 +9,7 @@ import getDummyLogger from "./loggers/getDummyLogger.ts"
 import { type LauncherFunction, main } from "./main.ts"
 import millisecondsToString from "./millisecondsToString.ts"
 import monitorMemory from "./monitorMemory.ts"
+import noop from "./noop.ts"
 
 export {
     getConsoleLogger,
@@ -17,4 +18,5 @@ export {
     main,
     millisecondsToString,
     monitorMemory,
+    noop,
 }
