@@ -47,6 +47,19 @@ Pass a second argument to change the minimum log level (defaults to `"info"`):
 const logger = await getConsoleLogger("my-app", "debug")
 ```
 
+### `getDummyLogger`
+
+Returns a no-op `Logger` useful as a placeholder in tests. All logging methods
+are no-ops and `isEnabledFor` always returns `false`. `getChild` and `with`
+return the same dummy logger instance.
+
+```ts
+import { getDummyLogger } from "@darthcav/ts-utils"
+
+const logger = getDummyLogger()
+// use logger in tests without any console output
+```
+
 ### `main`
 
 Bootstraps an application process: logs startup information, optionally registers
@@ -116,7 +129,7 @@ public/             # Documentation output (generated)
 [Apache-2.0](LICENSE)
 
 [node-version]: https://img.shields.io/badge/node-%3E%3D25-orange.svg?style=flat-square
-[version-image]: https://img.shields.io/badge/version-0.8.0-blue.svg?style=flat-square
+[version-image]: https://img.shields.io/badge/version-0.8.1-blue.svg?style=flat-square
 [ci-badge]: https://github.com/darthcav/ts-utils/actions/workflows/tests.yml/badge.svg
 [coverage-badge]: https://img.shields.io/badge/coverage-check%20CI-yellow.svg?style=flat-square
 [pages-url]: https://darthcav.github.io/ts-utils/

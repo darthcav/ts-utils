@@ -5,6 +5,7 @@
  */
 
 import getConsoleLogger from "./loggers/getConsoleLogger.ts"
+import getDummyLogger from "./loggers/getDummyLogger.ts"
 import { type LauncherFunction, main } from "./main.ts"
 
-export { getConsoleLogger, main, type LauncherFunction }
+export { getConsoleLogger, getDummyLogger, type LauncherFunction, main }
