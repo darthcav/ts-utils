@@ -11,10 +11,14 @@ await suite("monitorMemory", () => {
 
     beforeEach(() => {
         logMock.mock.resetCalls()
-        setIntervalMock = mock.method(globalThis, "setInterval", (fn: () => void, _delay: number) => {
-            fn()
-            return 0
-        })
+        setIntervalMock = mock.method(
+            globalThis,
+            "setInterval",
+            (fn: () => void, _delay: number) => {
+                fn()
+                return 0
+            },
+        )
     })
 
     afterEach(() => {
@@ -36,8 +40,8 @@ await suite("monitorMemory", () => {
     test("logs uptime and memory info on each tick", () => {
         monitorMemory(logger)
         assert.equal(logMock.mock.calls.length, 2)
-        const [uptimeMsg, memoryMsg] = logMock.mock.calls.map((c) => c.arguments[0] as string)
-        assert.match(uptimeMsg, /Process uptime:/)
-        assert.match(memoryMsg, /Process memory/)
+        const messages = logMock.mock.calls.map((c) => String(c.arguments[0]))
+        assert.match(messages[0] ?? "", /Process uptime:/)
+        assert.match(messages[1] ?? "", /Process memory/)
     })
 })

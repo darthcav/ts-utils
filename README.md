@@ -96,25 +96,27 @@ Bootstraps an application process: logs startup information, optionally register
 handlers for `SIGINT` and `SIGTERM` (controlled by
 `defaultInterruptionHandler`, defaults to `true`), always registers handlers for
 `uncaughtException` and `unhandledRejection`, then delegates to an optional
-launcher function. Set `defaultInterruptionHandler` to `false` when the
-application manages its own graceful shutdown (e.g. closing servers or database
-connections).
+launcher function.
 
-`defaultInterruptionHandler` can always be omitted — pass the launcher directly
-as the third argument. Use a closure inside the launcher to capture any
-additional context your application needs.
+The three optional parameters — `launcher` (function), `monitorMemoryHours`
+(number, defaults to `0`), and `defaultInterruptionHandler` (boolean, defaults
+to `true`) — have distinct types. Any subset can be passed in order and the
+function resolves each by type, so middle parameters can be omitted:
 
 ```ts
 import { getLogger } from "@logtape/logtape"
 import { main } from "@darthcav/ts-utils"
 
 const logger = getLogger(["my-app"])
-const config = loadConfig()
 
-main("my-app", logger, () => {
-    logger.info(`Application is running`)
-    startServer(config) // config captured via closure
-})
+main("my-app", logger)                            // all defaults
+main("my-app", logger, () => startServer())       // launcher only
+main("my-app", logger, 2)                         // monitor every 2h
+main("my-app", logger, false)                     // disable SIGINT/SIGTERM handler
+main("my-app", logger, () => startServer(), 2)    // launcher + monitor
+main("my-app", logger, () => startServer(), false)// launcher + no handler
+main("my-app", logger, 2, false)                  // monitor + no handler
+main("my-app", logger, () => startServer(), 2, false) // all three
 ```
 
 For the full API reference see the [API Documentation][pages-url].

@@ -1,5 +1,6 @@
 import process, { env, execArgv, pid, title } from "node:process"
 import type { Logger } from "@logtape/logtape"
+import monitorMemory from "./monitorMemory.ts"
 
 /**
  * A function that performs the actual application launch after process
@@ -13,74 +14,130 @@ export type LauncherFunction = () => void
  * handlers for `SIGINT`, `SIGTERM`, `uncaughtException`, and
  * `unhandledRejection`, then delegates to the optional launcher function.
  *
+ * The three optional parameters — `launcher`, `monitorMemoryHours`, and
+ * `defaultInterruptionHandler` — have distinct types and can be supplied in
+ * any subset and in that order, omitting whichever are not needed:
+ *
+ * | Call | launcher | monitorMemoryHours | defaultInterruptionHandler |
+ * |------|----------|--------------------|---------------------------|
+ * | `main(name, logger)` | — | 0 | true |
+ * | `main(name, logger, fn)` | fn | 0 | true |
+ * | `main(name, logger, 2)` | — | 2 | true |
+ * | `main(name, logger, false)` | — | 0 | false |
+ * | `main(name, logger, fn, 2)` | fn | 2 | true |
+ * | `main(name, logger, fn, false)` | fn | 0 | false |
+ * | `main(name, logger, 2, false)` | — | 2 | false |
+ * | `main(name, logger, fn, 2, false)` | fn | 2 | false |
+ *
  * @param name - Human-readable application name used in log output.
  * @param logger - Logger instance used for all startup and lifecycle messages.
- * @param launcher - Optional function invoked after all process handlers are
- *   registered. Use a closure to capture any context needed (e.g. a logger).
  *
- * @example Without a launcher:
+ * @example Without optional parameters:
  * ```ts
- * import { getLogger } from "@logtape/logtape"
- * import { main } from "@darthcav/ts-utils"
- *
- * main("my-app", getLogger(["my-app"]))
+ * main("my-app", logger)
  * ```
  *
  * @example With a launcher:
  * ```ts
- * const logger = getLogger(["my-app"])
- * main("my-app", logger, () => {
- *     logger.info(`Application is running`)
- *     // start servers, connect to databases, etc.
- * })
+ * main("my-app", logger, () => startServer())
  * ```
  *
- * @example Disable the built-in interruption handler to manage shutdown yourself:
+ * @example With memory monitoring every 2 hours:
  * ```ts
- * const logger = getLogger(["my-app"])
- * main("my-app", logger, false, () => {
- *     const server = createServer(...)
- *     process.on("SIGTERM", () => server.close(() => process.exit(0)))
- * })
+ * main("my-app", logger, 2)
+ * main("my-app", logger, () => startServer(), 2)
+ * ```
+ *
+ * @example Disable the built-in interruption handler:
+ * ```ts
+ * main("my-app", logger, false)
+ * main("my-app", logger, () => startServer(), false)
+ * main("my-app", logger, 2, false)
+ * main("my-app", logger, () => startServer(), 2, false)
  * ```
  */
+export function main(name: string, logger: Logger): void
 export function main(
     name: string,
     logger: Logger,
-    launcher?: LauncherFunction,
+    launcher: LauncherFunction,
 ): void
-
-/**
- * @param name - Human-readable application name used in log output.
- * @param logger - Logger instance used for all startup and lifecycle messages.
- * @param defaultInterruptionHandler - When `true` (default), registers `SIGINT`
- *   and `SIGTERM` handlers that log and exit cleanly. Set to `false` when the
- *   application manages its own graceful shutdown (e.g. closing servers or
- *   database connections). Can be omitted entirely — pass the launcher directly
- *   as the third argument to use the default (`true`).
- * @param launcher - Optional function invoked after all process handlers are
- *   registered. Use a closure to capture any context needed (e.g. a logger).
- */
+export function main(
+    name: string,
+    logger: Logger,
+    monitorMemoryHours: number,
+): void
 export function main(
     name: string,
     logger: Logger,
     defaultInterruptionHandler: boolean,
-    launcher?: LauncherFunction,
 ): void
 export function main(
     name: string,
     logger: Logger,
-    defaultInterruptionHandlerOrLauncher?: boolean | LauncherFunction,
-    launcher?: LauncherFunction,
+    launcher: LauncherFunction,
+    monitorMemoryHours: number,
+): void
+export function main(
+    name: string,
+    logger: Logger,
+    launcher: LauncherFunction,
+    defaultInterruptionHandler: boolean,
+): void
+export function main(
+    name: string,
+    logger: Logger,
+    monitorMemoryHours: number,
+    defaultInterruptionHandler: boolean,
+): void
+/**
+ * @param name - Human-readable application name used in log output.
+ * @param logger - Logger instance used for all startup and lifecycle messages.
+ * @param launcher - Optional function invoked after all process handlers are
+ *   registered. Use a closure to capture any context needed (e.g. a logger).
+ * @param monitorMemoryHours - When greater than `0`, starts periodic memory
+ *   logging every `monitorMemoryHours` hours via {@link monitorMemory}.
+ *   Defaults to `0` (disabled).
+ * @param defaultInterruptionHandler - When `true` (default), registers `SIGINT`
+ *   and `SIGTERM` handlers that log and exit cleanly. Set to `false` when the
+ *   application manages its own graceful shutdown (e.g. closing servers or
+ *   database connections).
+ */
+export function main(
+    name: string,
+    logger: Logger,
+    launcher: LauncherFunction,
+    monitorMemoryHours: number,
+    defaultInterruptionHandler: boolean,
+): void
+export function main(
+    name: string,
+    logger: Logger,
+    arg3?: LauncherFunction | number | boolean,
+    arg4?: number | boolean,
+    arg5?: boolean,
 ): void {
+    let launcher: LauncherFunction | undefined
+    let monitorMemoryHours = 0
     let defaultInterruptionHandler = true
-    let __f: LauncherFunction | undefined
 
-    if (typeof defaultInterruptionHandlerOrLauncher === "boolean") {
-        defaultInterruptionHandler = defaultInterruptionHandlerOrLauncher
-        __f = launcher
-    } else {
-        __f = defaultInterruptionHandlerOrLauncher
+    if (typeof arg3 === "function") {
+        launcher = arg3
+        if (typeof arg4 === "number") {
+            monitorMemoryHours = arg4
+            if (typeof arg5 === "boolean") {
+                defaultInterruptionHandler = arg5
+            }
+        } else if (typeof arg4 === "boolean") {
+            defaultInterruptionHandler = arg4
+        }
+    } else if (typeof arg3 === "number") {
+        monitorMemoryHours = arg3
+        if (typeof arg4 === "boolean") {
+            defaultInterruptionHandler = arg4
+        }
+    } else if (typeof arg3 === "boolean") {
+        defaultInterruptionHandler = arg3
     }
 
     const __logger = logger.getChild(["main"])
@@ -91,6 +148,10 @@ export function main(
     __logger.info(
         `Node.js process options: ${execArgv.concat(env["NODE_OPTIONS"] ?? []).join(" | ")}`,
     )
+
+    if (monitorMemoryHours > 0) {
+        monitorMemory(__logger, monitorMemoryHours)
+    }
 
     if (defaultInterruptionHandler) {
         for (const signal of ["SIGINT", "SIGTERM"] as const) {
@@ -118,5 +179,5 @@ export function main(
         process.exit(1)
     })
 
-    __f?.()
+    launcher?.()
 }

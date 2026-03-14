@@ -9,6 +9,7 @@ await suite("main", () => {
     const onMock = mock.fn()
     const onceMock = mock.fn()
     const exitMock = mock.fn()
+    const setIntervalMock = mock.fn()
 
     const childLogger = { info: logMock, error: logMock } as unknown as Logger
     const logger = { getChild: () => childLogger } as unknown as Logger
@@ -18,9 +19,11 @@ await suite("main", () => {
         onMock.mock.resetCalls()
         onceMock.mock.resetCalls()
         exitMock.mock.resetCalls()
+        setIntervalMock.mock.resetCalls()
         mock.method(process, "on", onMock)
         mock.method(process, "once", onceMock)
         mock.method(process, "exit", exitMock)
+        mock.method(globalThis, "setInterval", setIntervalMock)
     })
 
     afterEach(() => {
@@ -226,13 +229,6 @@ await suite("main", () => {
         assert.equal(launcher.mock.calls[0]?.arguments.length, 0)
     })
 
-    test("should invoke the launcher function when provided with explicit defaultInterruptionHandler", () => {
-        const launcher = mock.fn()
-        main("test-app", logger, true, launcher)
-        assert.equal(launcher.mock.callCount(), 1)
-        assert.equal(launcher.mock.calls[0]?.arguments.length, 0)
-    })
-
     test("should exit on unhandledRejection with an Error reason and no stack", () => {
         main("test-app", logger)
 
@@ -296,5 +292,78 @@ await suite("main", () => {
         )
         assert.equal(exitMock.mock.callCount(), 1)
         assert.equal(exitMock.mock.calls[0]?.arguments[0], 1)
+    })
+
+    // monitorMemoryHours overload combinations
+
+    test("should not start memory monitoring when monitorMemoryHours is 0 (default)", () => {
+        main("test-app", logger)
+        assert.equal(setIntervalMock.mock.callCount(), 0)
+    })
+
+    test("should start memory monitoring with only monitorMemoryHours", () => {
+        main("test-app", logger, 2)
+        assert.equal(setIntervalMock.mock.callCount(), 1)
+        assert.equal(
+            setIntervalMock.mock.calls[0]?.arguments[1],
+            2 * 60 * 60 * 1_000,
+        )
+    })
+
+    test("should start memory monitoring with launcher and monitorMemoryHours", () => {
+        main("test-app", logger, mock.fn(), 2)
+        assert.equal(setIntervalMock.mock.callCount(), 1)
+        assert.equal(
+            setIntervalMock.mock.calls[0]?.arguments[1],
+            2 * 60 * 60 * 1_000,
+        )
+    })
+
+    test("should start memory monitoring with monitorMemoryHours and defaultInterruptionHandler", () => {
+        main("test-app", logger, 3, false)
+        assert.equal(setIntervalMock.mock.callCount(), 1)
+        assert.equal(
+            setIntervalMock.mock.calls[0]?.arguments[1],
+            3 * 60 * 60 * 1_000,
+        )
+        assert.equal(
+            onMock.mock.calls.find((c) => c.arguments[0] === "SIGINT"),
+            undefined,
+        )
+    })
+
+    test("should start memory monitoring with all three optional parameters", () => {
+        const launcher = mock.fn()
+        main("test-app", logger, launcher, 4, true)
+        assert.equal(setIntervalMock.mock.callCount(), 1)
+        assert.equal(
+            setIntervalMock.mock.calls[0]?.arguments[1],
+            4 * 60 * 60 * 1_000,
+        )
+        assert.equal(launcher.mock.callCount(), 1)
+    })
+
+    // defaultInterruptionHandler overload combinations
+
+    test("should disable interruption handler with only defaultInterruptionHandler=false", () => {
+        main("test-app", logger, false)
+        assert.equal(
+            onMock.mock.calls.find((c) => c.arguments[0] === "SIGINT"),
+            undefined,
+        )
+        assert.equal(
+            onMock.mock.calls.find((c) => c.arguments[0] === "SIGTERM"),
+            undefined,
+        )
+    })
+
+    test("should disable interruption handler with launcher and defaultInterruptionHandler=false", () => {
+        const launcher = mock.fn()
+        main("test-app", logger, launcher, false)
+        assert.equal(
+            onMock.mock.calls.find((c) => c.arguments[0] === "SIGINT"),
+            undefined,
+        )
+        assert.equal(launcher.mock.callCount(), 1)
     })
 })
