@@ -22,9 +22,12 @@
 
 - Biome handles formatting and linting
 - 4 spaces indentation, LF line endings
+- Use JSDoc comments for all exported functions and types
 - Use `import type` for type-only imports (`verbatimModuleSyntax`)
 - Use `.ts` extensions in imports (`allowImportingTsExtensions`)
 - Exported functions must have explicit return types (`isolatedDeclarations`)
+- Check lint, documentation and test coverage, including *md files after every change
+  to ensure quality and consistency
 
 ## Testing
 

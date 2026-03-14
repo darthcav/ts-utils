@@ -47,31 +47,76 @@ Pass a second argument to change the minimum log level (defaults to `"info"`):
 const logger = await getConsoleLogger("my-app", "debug")
 ```
 
+### `monitorMemory`
+
+Starts a periodic interval that logs process uptime and memory usage (in bytes).
+The interval defaults to every 24 hours.
+
+```ts
+import { getConsoleLogger, main, monitorMemory } from "@darthcav/ts-utils"
+
+const logger = await getConsoleLogger("my-app")
+
+main("my-app", logger, () => {
+    monitorMemory(logger)      // every 24 hours
+    monitorMemory(logger, 1)   // every hour
+})
+```
+
+### `millisecondsToString`
+
+Converts a duration in milliseconds to a human-readable string. Sub-second
+values are rounded to the nearest second. Leading zero components are omitted
+except for seconds, which are always included.
+
+```ts
+import { millisecondsToString } from "@darthcav/ts-utils"
+
+millisecondsToString(3_661_000) // "1h 1m 1s"
+millisecondsToString(90_000)    // "1m 30s"
+millisecondsToString(5_000)     // "5s"
+```
+
+### `getDummyLogger`
+
+Returns a no-op `Logger` useful as a placeholder in tests. All logging methods
+are no-ops and `isEnabledFor` always returns `false`. `getChild` and `with`
+return the same dummy logger instance.
+
+```ts
+import { getDummyLogger } from "@darthcav/ts-utils"
+
+const logger = getDummyLogger()
+// use logger in tests without any console output
+```
+
 ### `main`
 
 Bootstraps an application process: logs startup information, optionally registers
 handlers for `SIGINT` and `SIGTERM` (controlled by
 `defaultInterruptionHandler`, defaults to `true`), always registers handlers for
 `uncaughtException` and `unhandledRejection`, then delegates to an optional
-launcher function. Set `defaultInterruptionHandler` to `false` when the
-application manages its own graceful shutdown (e.g. closing servers or database
-connections).
+launcher function.
 
-`defaultInterruptionHandler` can always be omitted — pass the launcher directly
-as the third argument. Use a closure inside the launcher to capture any
-additional context your application needs.
+The three optional parameters — `launcher` (function), `monitorMemoryHours`
+(number, defaults to `0`), and `defaultInterruptionHandler` (boolean, defaults
+to `true`) — have distinct types. Any subset can be passed in order and the
+function resolves each by type, so middle parameters can be omitted:
 
 ```ts
 import { getLogger } from "@logtape/logtape"
 import { main } from "@darthcav/ts-utils"
 
 const logger = getLogger(["my-app"])
-const config = loadConfig()
 
-main("my-app", logger, () => {
-    logger.info(`Application is running`)
-    startServer(config) // config captured via closure
-})
+main("my-app", logger)                            // all defaults
+main("my-app", logger, () => startServer())       // launcher only
+main("my-app", logger, 2)                         // monitor every 2h
+main("my-app", logger, false)                     // disable SIGINT/SIGTERM handler
+main("my-app", logger, () => startServer(), 2)    // launcher + monitor
+main("my-app", logger, () => startServer(), false)// launcher + no handler
+main("my-app", logger, 2, false)                  // monitor + no handler
+main("my-app", logger, () => startServer(), 2, false) // all three
 ```
 
 For the full API reference see the [API Documentation][pages-url].
@@ -116,7 +161,7 @@ public/             # Documentation output (generated)
 [Apache-2.0](LICENSE)
 
 [node-version]: https://img.shields.io/badge/node-%3E%3D25-orange.svg?style=flat-square
-[version-image]: https://img.shields.io/badge/version-0.8.0-blue.svg?style=flat-square
+[version-image]: https://img.shields.io/badge/version-0.8.1-blue.svg?style=flat-square
 [ci-badge]: https://github.com/darthcav/ts-utils/actions/workflows/tests.yml/badge.svg
 [coverage-badge]: https://img.shields.io/badge/coverage-check%20CI-yellow.svg?style=flat-square
 [pages-url]: https://darthcav.github.io/ts-utils/
