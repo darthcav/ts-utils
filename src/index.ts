@@ -7,5 +7,14 @@
 import getConsoleLogger from "./loggers/getConsoleLogger.ts"
 import getDummyLogger from "./loggers/getDummyLogger.ts"
 import { type LauncherFunction, main } from "./main.ts"
+import millisecondsToString from "./millisecondsToString.ts"
+import monitorMemory from "./monitorMemory.ts"
 
-export { getConsoleLogger, getDummyLogger, type LauncherFunction, main }
+export {
+    getConsoleLogger,
+    getDummyLogger,
+    type LauncherFunction,
+    main,
+    millisecondsToString,
+    monitorMemory,
+}

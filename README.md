@@ -47,6 +47,36 @@ Pass a second argument to change the minimum log level (defaults to `"info"`):
 const logger = await getConsoleLogger("my-app", "debug")
 ```
 
+### `monitorMemory`
+
+Starts a periodic interval that logs process uptime and memory usage (in bytes).
+The interval defaults to every 24 hours.
+
+```ts
+import { getConsoleLogger, main, monitorMemory } from "@darthcav/ts-utils"
+
+const logger = await getConsoleLogger("my-app")
+
+main("my-app", logger, () => {
+    monitorMemory(logger)      // every 24 hours
+    monitorMemory(logger, 1)   // every hour
+})
+```
+
+### `millisecondsToString`
+
+Converts a duration in milliseconds to a human-readable string. Sub-second
+values are rounded to the nearest second. Leading zero components are omitted
+except for seconds, which are always included.
+
+```ts
+import { millisecondsToString } from "@darthcav/ts-utils"
+
+millisecondsToString(3_661_000) // "1h 1m 1s"
+millisecondsToString(90_000)    // "1m 30s"
+millisecondsToString(5_000)     // "5s"
+```
+
 ### `getDummyLogger`
 
 Returns a no-op `Logger` useful as a placeholder in tests. All logging methods
