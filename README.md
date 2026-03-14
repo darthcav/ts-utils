@@ -77,6 +77,18 @@ millisecondsToString(90_000)    // "1m 30s"
 millisecondsToString(5_000)     // "5s"
 ```
 
+### `noop`
+
+A no-op function that does nothing and returns `void`. Useful as a placeholder
+callback or default handler.
+
+```ts
+import { noop } from "@darthcav/ts-utils"
+
+setTimeout(noop, 1000)
+element.addEventListener("click", noop)
+```
+
 ### `getDummyLogger`
 
 Returns a no-op `Logger` useful as a placeholder in tests. All logging methods
@@ -150,6 +162,7 @@ npm run doc
 src/
   index.ts          # Public API entry point
   main.ts           # Main module
+  noop.ts           # No-op function
   loggers/          # Logger utilities
   __tests__/        # Test files
 dist/               # Compiled output (generated)
@@ -161,7 +174,7 @@ public/             # Documentation output (generated)
 [Apache-2.0](LICENSE)
 
 [node-version]: https://img.shields.io/badge/node-%3E%3D25-orange.svg?style=flat-square
-[version-image]: https://img.shields.io/badge/version-0.8.1-blue.svg?style=flat-square
+[version-image]: https://img.shields.io/badge/version-0.8.2-blue.svg?style=flat-square
 [ci-badge]: https://github.com/darthcav/ts-utils/actions/workflows/tests.yml/badge.svg
 [coverage-badge]: https://img.shields.io/badge/coverage-check%20CI-yellow.svg?style=flat-square
 [pages-url]: https://darthcav.github.io/ts-utils/
