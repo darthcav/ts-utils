@@ -175,8 +175,8 @@ public/             # Documentation output (generated)
 
 [node-version]: https://img.shields.io/badge/node-%3E%3D25-orange.svg?style=flat-square
 [node-url]: https://nodejs.org
-[version-image]: https://img.shields.io/badge/version-0.8.3-blue.svg?style=flat-square
+[version-image]: https://img.shields.io/badge/version-0.8.4-blue.svg?style=flat-square
 [ci-badge]: https://github.com/darthcav/ts-utils/actions/workflows/tests.yml/badge.svg
-[coverage-badge]: https://codecov.io/github/darthcav/ts-utils/branch/dev/graph/badge.svg?token=S4BKGOJVJA
+[coverage-badge]: https://codecov.io/github/darthcav/ts-utils/branch/dev/graph/badge.svg?token=RNEPER4KEI
 [coverage-url]: https://codecov.io/github/darthcav/ts-utils
 [pages-url]: https://darthcav.github.io/ts-utils/
