@@ -10,7 +10,7 @@ import noop from "../noop.ts"
  *
  * @returns A logger whose methods are all no-ops.
  */
-export default function getDummyLogger(): Logger {
+export default async function getDummyLogger(): Promise<Logger> {
     const logger: Logger = {
         category: [],
         parent: null,
