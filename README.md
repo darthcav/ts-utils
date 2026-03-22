@@ -1,6 +1,6 @@
 # @darthcav/ts-utils
 
-![Node][node-version] ![Version][version-image] ![CI][ci-badge] ![Coverage][coverage-badge]
+[![Node][node-version]][node-url] ![Version][version-image] ![CI][ci-badge] [![Coverage][coverage-badge]][coverage-url]
 
 A collection of utility functions for TypeScript applications and modules.
 
@@ -174,7 +174,9 @@ public/             # Documentation output (generated)
 [Apache-2.0](LICENSE)
 
 [node-version]: https://img.shields.io/badge/node-%3E%3D25-orange.svg?style=flat-square
-[version-image]: https://img.shields.io/badge/version-0.8.2-blue.svg?style=flat-square
+[node-url]: https://nodejs.org
+[version-image]: https://img.shields.io/badge/version-0.8.3-blue.svg?style=flat-square
 [ci-badge]: https://github.com/darthcav/ts-utils/actions/workflows/tests.yml/badge.svg
-[coverage-badge]: https://img.shields.io/badge/coverage-check%20CI-yellow.svg?style=flat-square
+[coverage-badge]: https://codecov.io/github/darthcav/ts-utils/branch/dev/graph/badge.svg?token=S4BKGOJVJA
+[coverage-url]: https://codecov.io/github/darthcav/ts-utils
 [pages-url]: https://darthcav.github.io/ts-utils/
