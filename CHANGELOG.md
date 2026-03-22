@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.4] - 2026-03-22
+
+### Changed
+
+- Updated Codecov coverage badge token in `README.md`.
+
 ## [0.8.3] - 2026-03-22
 
 ### Added
