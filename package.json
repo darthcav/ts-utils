@@ -1,7 +1,7 @@
 {
     "name": "@darthcav/ts-utils",
     "description": "A collection of utility functions for TypeScript applications and modules",
-    "version": "0.8.4",
+    "version": "0.8.5",
     "author": {
         "name": "darthcav",
         "url": "https://github.com/darthcav"
@@ -24,14 +24,14 @@
         "dist"
     ],
     "dependencies": {
-        "@logtape/logtape": "2.0.4"
+        "@logtape/logtape": "2.0.5"
     },
     "devDependencies": {
-        "@biomejs/biome": "2.4.8",
+        "@biomejs/biome": "2.4.9",
         "@types/node": "25.5.0",
         "asserttt": "1.0.1",
         "shx": "0.4.0",
-        "typedoc": "0.28.17"
+        "typedoc": "0.28.18"
     },
     "repository": {
         "type": "git",
