@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.5] - 2026-03-27
+
+### Changed
+
+- `@logtape/logtape` updated from 2.0.4 to 2.0.5.
+- `@biomejs/biome` updated from 2.4.8 to 2.4.9 (dev).
+- `typedoc` updated from 0.28.17 to 0.28.18 (dev).
+
 ## [0.8.4] - 2026-03-22
 
 ### Changed
