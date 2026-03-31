@@ -2,10 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
+[Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.8.6] - 2026-03-31
+
+### Added
+
+- `prettier` for Markdown linting and formatting (`lint` and `lint:fix` scripts).
+- `.prettierrc.json` with Markdown-specific options (`proseWrap: always`, `printWidth: 120`).
+
+### Changed
+
+- `@biomejs/biome` updated from 2.4.9 to 2.4.10 (dev).
 
 ## [0.8.5] - 2026-03-27
 
@@ -25,8 +36,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `linuxRelease` — parses `/etc/os-release` on Linux and returns key-value pairs, or `null` on other platforms or when the file is absent.
-- `windowsRelease` — returns the Windows version name, NT kernel version string, and processor architecture, or `null` on non-Windows platforms.
+- `linuxRelease` — parses `/etc/os-release` on Linux and returns key-value pairs, or `null` on other platforms or when
+  the file is absent.
+- `windowsRelease` — returns the Windows version name, NT kernel version string, and processor architecture, or `null`
+  on non-Windows platforms.
 - `LinuxRelease` and `WindowsRelease` TypeScript interfaces.
 
 ### Changed
@@ -51,13 +64,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- `main` enhanced with overloads supporting all combinations of the optional `launcher` and `monitorMemoryHours` parameters.
+- `main` enhanced with overloads supporting all combinations of the optional `launcher` and `monitorMemoryHours`
+  parameters.
 
 ## [0.8.0] - 2025
 
 ### Changed
 
-- Removed the SIGKILL handler from `main`; only SIGINT, SIGTERM, `uncaughtException`, and `unhandledRejection` are handled.
+- Removed the SIGKILL handler from `main`; only SIGINT, SIGTERM, `uncaughtException`, and `unhandledRejection` are
+  handled.
 
 ## [0.7.0] - 2025
 
@@ -103,4 +118,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Initial release with `main` — an opinionated application entry point that registers signal and error handlers, logs startup information, and optionally runs a launcher function.
+- Initial release with `main` — an opinionated application entry point that registers signal and error handlers, logs
+  startup information, and optionally runs a launcher function.

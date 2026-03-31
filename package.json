@@ -1,7 +1,7 @@
 {
     "name": "@darthcav/ts-utils",
     "description": "A collection of utility functions for TypeScript applications and modules",
-    "version": "0.8.5",
+    "version": "0.8.6",
     "author": {
         "name": "darthcav",
         "url": "https://github.com/darthcav"
@@ -19,7 +19,6 @@
     },
     "files": [
         "src",
-        "!src/**/*.test.ts",
         "!src/__tests__",
         "dist"
     ],
@@ -27,9 +26,10 @@
         "@logtape/logtape": "2.0.5"
     },
     "devDependencies": {
-        "@biomejs/biome": "2.4.9",
+        "@biomejs/biome": "2.4.10",
         "@types/node": "25.5.0",
         "asserttt": "1.0.1",
+        "prettier": "3.8.1",
         "shx": "0.4.0",
         "typedoc": "0.28.18"
     },
@@ -52,8 +52,8 @@
         "test:coverage": "node --env-file=.env.local --experimental-test-module-mocks --experimental-test-coverage --test 'src/**/*.test.ts'",
         "test:coverage:lcov": "shx mkdir -p coverage && node --env-file=.env.local --experimental-test-module-mocks --experimental-test-coverage --test-reporter=lcov --test-reporter-destination=coverage/lcov.info --test-reporter=spec --test-reporter-destination=stdout --test 'src/**/*.test.ts'",
         "\n===== Linter =====": "",
-        "lint": "biome check .",
-        "lint:fix": "biome check --write .",
+        "lint": "biome check . && prettier --check \"**/*.md\" --ignore-path .gitignore",
+        "lint:fix": "biome check --write . && prettier --write \"**/*.md\" --ignore-path .gitignore",
         "\n===== TypeDoc =====": "",
         "doc": "shx rm -rf public/* && typedoc --tsconfig tsconfig.json"
     }
