@@ -26,10 +26,10 @@
         "@logtape/logtape": "2.0.5"
     },
     "devDependencies": {
-        "@biomejs/biome": "2.4.10",
-        "@types/node": "25.5.2",
+        "@biomejs/biome": "2.4.11",
+        "@types/node": "25.6.0",
         "asserttt": "1.0.1",
-        "prettier": "3.8.1",
+        "prettier": "3.8.2",
         "shx": "0.4.0",
         "typedoc": "0.28.18"
     },
