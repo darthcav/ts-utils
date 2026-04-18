@@ -16,6 +16,7 @@ import {
     type WindowsRelease,
     windowsRelease,
 } from "./os-utils.ts"
+import type { RuntimeObject } from "./types.ts"
 
 export {
     getConsoleLogger,
@@ -27,6 +28,7 @@ export {
     millisecondsToString,
     monitorMemory,
     noop,
+    type RuntimeObject,
     type WindowsRelease,
     windowsRelease,
 }

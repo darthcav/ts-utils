@@ -2,7 +2,11 @@ import assert from "node:assert/strict"
 import process from "node:process"
 import { afterEach, beforeEach, mock, suite, test } from "node:test"
 import type { Logger } from "@logtape/logtape"
-import { main } from "../main.ts"
+import type { Assert, Equal } from "asserttt"
+import { type LauncherFunction, main } from "../main.ts"
+
+type _LauncherFunctionShape = Assert<Equal<LauncherFunction, () => void>>
+type _MainReturnType = Assert<Equal<ReturnType<typeof main>, void>>
 
 await suite("main", () => {
     const logMock = mock.fn()
