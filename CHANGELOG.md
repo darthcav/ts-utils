@@ -2,23 +2,45 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
-[Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
+adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### Added
-
-- `RuntimeObject` — a `Record<string, unknown>` alias for objects whose keys and values are only known at runtime.
-- Optional `locale` parameter on `millisecondsToString` (defaults to `"en"`), forwarded to `Intl.DurationFormat` to
-  control unit labels.
-- Type-level tests using `asserttt` for `RuntimeObject`, `LauncherFunction`, `LinuxRelease`, and `WindowsRelease`.
+## [0.8.8] - 2026-04-18
 
 ### Changed
 
-- `millisecondsToString` reimplemented on top of `Intl.DurationFormat` with a per-locale formatter cache.
-- `millisecondsToString` now omits every zero-valued component instead of always including seconds: an input of `0`
-  returns `""`, and `millisecondsToString(3_600_000)` returns `"1h"` instead of `"1h 0s"`.
+- `LinuxRelease` and `WindowsRelease` converted from `interface` declarations to `type` aliases.
+  `LinuxRelease` is now `Record<string, string>`; `WindowsRelease` is a type alias with the same
+  property shape. Public API is compatible.
+- Markdown `printWidth` in `.prettierrc.json` narrowed from 120 to 100; Markdown files reflowed
+  accordingly.
+- `CLAUDE.md` aligned with template: "Before Merging or Pushing" checklist expanded (tests,
+  coverage, lint, documentation), Stack bullets added (`type` over `interface`, Biome + Prettier,
+  `node:test`, TypeDoc), lint command wording updated to mention Prettier for Markdown.
+
+## [0.8.7] - 2026-04-18
+
+### Added
+
+- `RuntimeObject` — a `Record<string, unknown>` alias for objects whose keys and values are only
+  known at runtime.
+- Optional `locale` parameter on `millisecondsToString` (defaults to `"en"`), forwarded to
+  `Intl.DurationFormat` to control unit labels.
+- Type-level tests using `asserttt` for `RuntimeObject`, `LauncherFunction`, `LinuxRelease`, and
+  `WindowsRelease`.
+
+### Changed
+
+- `millisecondsToString` reimplemented on top of `Intl.DurationFormat` with a per-locale formatter
+  cache.
+- `millisecondsToString` now omits every zero-valued component instead of always including seconds:
+  an input of `0` returns `""`, and `millisecondsToString(3_600_000)` returns `"1h"` instead of
+  `"1h 0s"`.
+- Dev dependencies bumped via Dependabot (`@biomejs/biome`, `@types/node`, `typedoc`, `prettier`).
+- GitHub Actions bumped via Dependabot (`actions/upload-pages-artifact`, other workflow actions).
+- `.github/copilot-instructions.md`, `CLAUDE.md`, and `README.md` updated for clarity.
 
 ## [0.8.6] - 2026-03-31
 
@@ -49,10 +71,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
-- `linuxRelease` — parses `/etc/os-release` on Linux and returns key-value pairs, or `null` on other platforms or when
-  the file is absent.
-- `windowsRelease` — returns the Windows version name, NT kernel version string, and processor architecture, or `null`
-  on non-Windows platforms.
+- `linuxRelease` — parses `/etc/os-release` on Linux and returns key-value pairs, or `null` on other
+  platforms or when the file is absent.
+- `windowsRelease` — returns the Windows version name, NT kernel version string, and processor
+  architecture, or `null` on non-Windows platforms.
 - `LinuxRelease` and `WindowsRelease` TypeScript interfaces.
 
 ### Changed
@@ -71,21 +93,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
-- `millisecondsToString` — formats a duration in milliseconds as a human-readable string (e.g. `"1h 2m 3s"`).
+- `millisecondsToString` — formats a duration in milliseconds as a human-readable string (e.g.
+  `"1h 2m 3s"`).
 - `monitorMemory` — starts a periodic logger that reports process uptime and heap usage.
 - `getDummyLogger` — returns a logger with no-op methods for use in tests.
 
 ### Changed
 
-- `main` enhanced with overloads supporting all combinations of the optional `launcher` and `monitorMemoryHours`
-  parameters.
+- `main` enhanced with overloads supporting all combinations of the optional `launcher` and
+  `monitorMemoryHours` parameters.
 
 ## [0.8.0] - 2025
 
 ### Changed
 
-- Removed the SIGKILL handler from `main`; only SIGINT, SIGTERM, `uncaughtException`, and `unhandledRejection` are
-  handled.
+- Removed the SIGKILL handler from `main`; only SIGINT, SIGTERM, `uncaughtException`, and
+  `unhandledRejection` are handled.
 
 ## [0.7.0] - 2025
 
@@ -97,7 +120,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
-- Signal handlers in `main` changed from `process.once` to `process.on` to handle repeated signals correctly.
+- Signal handlers in `main` changed from `process.once` to `process.on` to handle repeated signals
+  correctly.
 
 ### Added
 
@@ -131,5 +155,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
-- Initial release with `main` — an opinionated application entry point that registers signal and error handlers, logs
-  startup information, and optionally runs a launcher function.
+- Initial release with `main` — an opinionated application entry point that registers signal and
+  error handlers, logs startup information, and optionally runs a launcher function.
+
+## [0.0.1] - 2026-03-07
+
+### Added
+
+- Initial project scaffolding: `package.json` metadata, TypeScript configuration, and GitHub Actions
+  workflow (`publish.yml`) for publishing to npm.
