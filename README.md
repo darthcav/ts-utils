@@ -63,15 +63,17 @@ main("my-app", logger, () => {
 
 ### `millisecondsToString`
 
-Converts a duration in milliseconds to a human-readable string. Sub-second values are rounded to the nearest second.
-Leading zero components are omitted except for seconds, which are always included.
+Converts a duration in milliseconds to a human-readable string via `Intl.DurationFormat`. Sub-second values are rounded
+to the nearest second, and any zero-valued components are omitted — so a zero-millisecond input returns an empty string.
+An optional BCP 47 locale tag (default `"en"`) controls the unit labels.
 
 ```ts
 import { millisecondsToString } from "@darthcav/ts-utils"
 
-millisecondsToString(3_661_000) // "1h 1m 1s"
-millisecondsToString(90_000)    // "1m 30s"
-millisecondsToString(5_000)     // "5s"
+millisecondsToString(3_661_000)        // "1h 1m 1s"
+millisecondsToString(90_000)           // "1m 30s"
+millisecondsToString(5_000)            // "5s"
+millisecondsToString(90_061_000, "es") // "1d 1h 1min 1s"
 ```
 
 ### `noop`
@@ -83,6 +85,20 @@ import { noop } from "@darthcav/ts-utils"
 
 setTimeout(noop, 1000)
 element.addEventListener("click", noop)
+```
+
+### `RuntimeObject`
+
+Represents an object whose keys and values are only known at runtime. It is defined as `Record<string, unknown>` so
+values must be narrowed before use.
+
+```ts
+import type { RuntimeObject } from "@darthcav/ts-utils"
+
+const payload: RuntimeObject = {
+    id: 123,
+    metadata: { active: true },
+}
 ```
 
 ### `getDummyLogger`

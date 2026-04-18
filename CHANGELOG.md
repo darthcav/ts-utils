@@ -7,6 +7,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- `RuntimeObject` — a `Record<string, unknown>` alias for objects whose keys and values are only known at runtime.
+- Optional `locale` parameter on `millisecondsToString` (defaults to `"en"`), forwarded to `Intl.DurationFormat` to
+  control unit labels.
+- Type-level tests using `asserttt` for `RuntimeObject`, `LauncherFunction`, `LinuxRelease`, and `WindowsRelease`.
+
+### Changed
+
+- `millisecondsToString` reimplemented on top of `Intl.DurationFormat` with a per-locale formatter cache.
+- `millisecondsToString` now omits every zero-valued component instead of always including seconds: an input of `0`
+  returns `""`, and `millisecondsToString(3_600_000)` returns `"1h"` instead of `"1h 0s"`.
+
 ## [0.8.6] - 2026-03-31
 
 ### Added

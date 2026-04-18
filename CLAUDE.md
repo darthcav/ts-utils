@@ -1,5 +1,36 @@
 # Project Conventions
 
+## Git Workflow
+
+### Branching Strategy
+
+- **Main branch**: `main` - production-ready code only
+- **Feature branches**: `feature/<feature-name>` - for new features
+- **Bugfix branches**: `fix/<issue-description>` - for bug fixes
+- **Always create a feature branch** before making changes to existing functionality
+
+### Commit Practices
+
+- **Commit incrementally** - small, focused commits that do one thing
+- **Use conventional commits** format:
+    - `feat:` - new features
+    - `fix:` - bug fixes
+    - `docs:` - documentation changes
+    - `refactor:` - code refactoring
+    - `test:` - adding or updating tests
+    - `chore:` - maintenance tasks
+- **Write descriptive commit messages** with a summary line and bullet points for details
+- **Verify build passes** before committing (`npm run build`)
+
+### Before Merging
+
+- Test changes locally (`npm run test` and `npm run lint`)
+- Ensure no TypeScript errors
+- Review the diff for unintended changes
+- **Update documentation** — if the change adds, removes, or modifies user-visible features, update `README.md` (feature
+  descriptions, route table, env vars) and any relevant guides in `docs/` before merging. Also update `TODO.md` to mark
+  completed items.
+
 ## Stack
 
 - Node.js >= 25 with native TypeScript execution (type stripping)

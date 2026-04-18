@@ -1,7 +1,10 @@
 import assert from "node:assert/strict"
 import { platform } from "node:os"
 import { suite, test } from "node:test"
-import { linuxRelease, windowsRelease } from "../os-utils.ts"
+import type { Assert, Equal } from "asserttt"
+import { type LinuxRelease, linuxRelease, windowsRelease } from "../os-utils.ts"
+
+type _LinuxReleaseValueType = Assert<Equal<LinuxRelease[string], string>>
 
 await suite("linuxRelease", () => {
     test("returns an object on Linux", () => {
