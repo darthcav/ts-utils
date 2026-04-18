@@ -7,14 +7,12 @@ import { arch, release as osRelease, platform } from "node:os"
  * Common keys include `ID`, `NAME`, `VERSION_ID`, and `PRETTY_NAME`.
  * See {@link https://www.freedesktop.org/software/systemd/man/os-release.html | os-release(5)} for the full spec.
  */
-export interface LinuxRelease {
-    [key: string]: string
-}
+export type LinuxRelease = Record<string, string>
 
 /**
  * Basic information about the current Windows environment.
  */
-export interface WindowsRelease {
+export type WindowsRelease = {
     /** Human-readable Windows version name, e.g. `"Windows 11"`. */
     name: string
     /** NT kernel version string as returned by `os.release()`, e.g. `"10.0.22000"`. */
@@ -48,11 +46,10 @@ export function linuxRelease(): LinuxRelease | null {
             continue
         }
         const key = line.substring(0, eq).trim()
-        const value = line
+        result[key] = line
             .substring(eq + 1)
             .trim()
             .replace(/^"|"$/g, "")
-        result[key] = value
     }
     return result
 }
