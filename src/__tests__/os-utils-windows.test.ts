@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { mock, suite, test } from "node:test"
 import type { Assert, Equal } from "asserttt"
-import type { WindowsRelease } from "../os-utils.ts"
+import type { OsRelease } from "../os-utils.ts"
 
 let mockRelease = "10.0.22000"
 
@@ -15,9 +15,9 @@ mock.module("node:os", {
 
 const { linuxRelease, windowsRelease } = await import("../os-utils.ts")
 
-type _WindowsReleaseName = Assert<Equal<WindowsRelease["name"], string>>
-type _WindowsReleaseVersion = Assert<Equal<WindowsRelease["version"], string>>
-type _WindowsReleaseArch = Assert<Equal<WindowsRelease["arch"], string>>
+type _OsReleaseName = Assert<Equal<OsRelease["name"], string>>
+type _OsReleaseVersion = Assert<Equal<OsRelease["version"], string>>
+type _OsReleaseArch = Assert<Equal<OsRelease["arch"], string>>
 
 await suite("linuxRelease (non-linux platform)", async () => {
     test("returns null on non-Linux platforms", () => {

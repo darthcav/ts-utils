@@ -2,9 +2,12 @@ import assert from "node:assert/strict"
 import { platform } from "node:os"
 import { suite, test } from "node:test"
 import type { Assert, Equal } from "asserttt"
-import { type LinuxRelease, linuxRelease, windowsRelease } from "../os-utils.ts"
+import { linuxRelease, type OsRelease, windowsRelease } from "../os-utils.ts"
 
-type _LinuxReleaseValueType = Assert<Equal<LinuxRelease[string], string>>
+type _OsReleaseName = Assert<Equal<OsRelease["name"], string>>
+type _OsReleaseVersion = Assert<Equal<OsRelease["version"], string>>
+type _OsReleaseArch = Assert<Equal<OsRelease["arch"], string>>
+type _OsReleaseIndex = Assert<Equal<OsRelease[string], string>>
 
 await suite("linuxRelease", () => {
     test("returns an object on Linux", () => {
@@ -54,6 +57,17 @@ await suite("linuxRelease", () => {
             assert.ok(!value.startsWith('"'))
             assert.ok(!value.endsWith('"'))
         }
+    })
+
+    test("normalized name, version, and arch fields are strings", () => {
+        if (platform() !== "linux") {
+            return
+        }
+        const result = linuxRelease()
+        assert.ok(result !== null)
+        assert.equal(typeof result.name, "string")
+        assert.equal(typeof result.version, "string")
+        assert.equal(typeof result.arch, "string")
     })
 })
 
