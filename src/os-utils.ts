@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "node:fs"
 import { arch, release as kernelRelease, platform } from "node:os"
+import type { RuntimeObject } from "./types.ts"
 
 /**
  * OS release information with normalized fields and optional platform-specific extras.
@@ -14,9 +15,7 @@ export type OsRelease = {
     version: string
     /** Processor architecture as returned by `os.arch()`, e.g. `"x64"`. */
     arch: string
-    /** Additional platform-specific string properties (e.g. raw `/etc/os-release` keys on Linux). */
-    [key: string]: string
-}
+} & RuntimeObject
 
 const OS_RELEASE = "/etc/os-release"
 
