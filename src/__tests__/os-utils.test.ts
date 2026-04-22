@@ -2,83 +2,79 @@ import assert from "node:assert/strict"
 import { platform } from "node:os"
 import { suite, test } from "node:test"
 import type { Assert, Equal } from "asserttt"
-import { type LinuxRelease, linuxRelease, windowsRelease } from "../os-utils.ts"
+import { type OsRelease, osRelease } from "../os-utils.ts"
 
-type _LinuxReleaseValueType = Assert<Equal<LinuxRelease[string], string>>
+type _OsReleaseName = Assert<Equal<OsRelease["name"], string>>
+type _OsReleaseVersion = Assert<Equal<OsRelease["version"], string>>
+type _OsReleaseArch = Assert<Equal<OsRelease["arch"], string>>
 
-await suite("linuxRelease", () => {
+await suite("osRelease", () => {
     test("returns an object on Linux", () => {
         if (platform() !== "linux") {
             return
         }
-        const result = linuxRelease()
+        const result = osRelease()
         assert.notEqual(result, null)
         assert.equal(typeof result, "object")
     })
 
-    test("returns null on non-Linux platforms", () => {
-        if (platform() === "linux") {
+    test("returns an object on Windows", () => {
+        if (platform() !== "win32") {
             return
         }
-        assert.equal(linuxRelease(), null)
+        const result = osRelease()
+        assert.notEqual(result, null)
+        assert.equal(typeof result, "object")
     })
 
-    test("parsed object has string values", () => {
+    test("returns null on unsupported platforms", () => {
+        if (platform() === "linux" || platform() === "win32") {
+            return
+        }
+        assert.equal(osRelease(), null)
+    })
+
+    test("all values are strings on Linux", () => {
         if (platform() !== "linux") {
             return
         }
-        const result = linuxRelease()
+        const result = osRelease()
         assert.ok(result !== null)
         for (const value of Object.values(result)) {
             assert.equal(typeof value, "string")
         }
     })
 
-    test("parsed object contains expected keys on Linux", () => {
+    test("contains expected raw keys on Linux", () => {
         if (platform() !== "linux") {
             return
         }
-        const result = linuxRelease()
+        const result = osRelease()
         assert.ok(result !== null)
         assert.ok("ID" in result)
         assert.ok("NAME" in result)
     })
 
-    test("values do not contain surrounding quotes", () => {
+    test("values do not contain surrounding quotes on Linux", () => {
         if (platform() !== "linux") {
             return
         }
-        const result = linuxRelease()
+        const result = osRelease()
         assert.ok(result !== null)
         for (const value of Object.values(result)) {
+            if (typeof value !== "string") {
+                continue
+            }
             assert.ok(!value.startsWith('"'))
             assert.ok(!value.endsWith('"'))
         }
     })
-})
 
-await suite("windowsRelease", () => {
-    test("returns an object on Windows", () => {
-        if (platform() !== "win32") {
+    test("name, version, and arch are strings", () => {
+        if (platform() !== "linux" && platform() !== "win32") {
             return
         }
-        const result = windowsRelease()
-        assert.notEqual(result, null)
-        assert.equal(typeof result, "object")
-    })
-
-    test("returns null on non-Windows platforms", () => {
-        if (platform() === "win32") {
-            return
-        }
-        assert.equal(windowsRelease(), null)
-    })
-
-    test("returned object has name, version, and arch on Windows", () => {
-        if (platform() !== "win32") {
-            return
-        }
-        const result = windowsRelease()
+        const result = osRelease()
         assert.ok(result !== null)
         assert.equal(typeof result.name, "string")
         assert.equal(typeof result.version, "string")
@@ -89,7 +85,7 @@ await suite("windowsRelease", () => {
         if (platform() !== "win32") {
             return
         }
-        const result = windowsRelease()
+        const result = osRelease()
         assert.ok(result !== null)
         assert.ok(result.name.startsWith("Windows "))
     })
