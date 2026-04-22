@@ -107,6 +107,27 @@ const payload: RuntimeObject = {
 }
 ```
 
+### `osRelease`
+
+Returns OS release information for the current platform as an `OsRelease` object, or `null` on
+unsupported platforms or when `/etc/os-release` is absent on Linux.
+
+The `OsRelease` type exposes three normalized fields — `name`, `version`, and `arch` — present on
+all platforms. On Linux, all raw key-value pairs from `/etc/os-release` (e.g. `PRETTY_NAME`, `ID`,
+`ID_LIKE`) are also accessible by string index.
+
+```ts
+import { osRelease } from "@darthcav/ts-utils"
+
+const info = osRelease()
+if (info) {
+    console.log(info.name)        // e.g. "Ubuntu" or "Windows 11"
+    console.log(info.version)     // e.g. "24.04" or "10.0.22000"
+    console.log(info.arch)        // e.g. "x64"
+    console.log(info.PRETTY_NAME) // e.g. "Ubuntu 24.04 LTS" (Linux only)
+}
+```
+
 ### `getDummyLogger`
 
 Returns a no-op `Logger` useful as a placeholder in tests. All logging methods are no-ops and
@@ -179,6 +200,7 @@ src/
   index.ts          # Public API entry point
   main.ts           # Main module
   noop.ts           # No-op function
+  os-utils.ts       # OS release utilities
   loggers/          # Logger utilities
   __tests__/        # Test files
 dist/               # Compiled output (generated)
