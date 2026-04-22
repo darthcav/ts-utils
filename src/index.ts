@@ -10,19 +10,18 @@ import { type LauncherFunction, main } from "./main.ts"
 import millisecondsToString from "./millisecondsToString.ts"
 import monitorMemory from "./monitorMemory.ts"
 import noop from "./noop.ts"
-import { linuxRelease, type OsRelease, windowsRelease } from "./os-utils.ts"
+import { type OsRelease, osRelease } from "./os-utils.ts"
 import type { RuntimeObject } from "./types.ts"
 
 export {
     getConsoleLogger,
     getDummyLogger,
     type LauncherFunction,
-    linuxRelease,
     main,
     millisecondsToString,
     monitorMemory,
     noop,
     type OsRelease,
+    osRelease,
     type RuntimeObject,
-    windowsRelease,
 }

@@ -9,10 +9,10 @@ mock.module("node:fs", {
     },
 })
 
-const { linuxRelease } = await import("../os-utils.ts")
+const { osRelease } = await import("../os-utils.ts")
 
-await suite("linuxRelease (file missing)", async () => {
+await suite("osRelease (file missing)", async () => {
     test("returns null when /etc/os-release does not exist", () => {
-        assert.equal(linuxRelease(), null)
+        assert.equal(osRelease(), null)
     })
 })
