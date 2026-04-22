@@ -7,6 +7,25 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-04-22
+
+### Added
+
+- `osRelease` — returns OS release information for the current platform, or `null` on unsupported
+  platforms or when `/etc/os-release` is absent on Linux. On Linux, normalizes `NAME`/`PRETTY_NAME`
+  → `name`, `VERSION_ID`/`VERSION` → `version`, and `os.arch()` → `arch`, while preserving all raw
+  `/etc/os-release` keys on the returned object. On Windows, distinguishes Windows 11 from Windows
+  10 by NT build number (>= 22000 → Windows 11).
+- `OsRelease` — unified type with fixed `name`, `version`, and `arch` fields plus a string index
+  signature for platform-specific extras (e.g. raw `/etc/os-release` keys on Linux).
+
+### Removed
+
+- `linuxRelease` — replaced by `osRelease`.
+- `windowsRelease` — replaced by `osRelease`.
+- `LinuxRelease` — replaced by `OsRelease`.
+- `WindowsRelease` — replaced by `OsRelease`.
+
 ## [0.8.8] - 2026-04-18
 
 ### Changed
