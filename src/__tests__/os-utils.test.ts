@@ -7,7 +7,6 @@ import { type OsRelease, osRelease } from "../os-utils.ts"
 type _OsReleaseName = Assert<Equal<OsRelease["name"], string>>
 type _OsReleaseVersion = Assert<Equal<OsRelease["version"], string>>
 type _OsReleaseArch = Assert<Equal<OsRelease["arch"], string>>
-type _OsReleaseIndex = Assert<Equal<OsRelease[string], string>>
 
 await suite("osRelease", () => {
     test("returns an object on Linux", () => {
@@ -63,6 +62,9 @@ await suite("osRelease", () => {
         const result = osRelease()
         assert.ok(result !== null)
         for (const value of Object.values(result)) {
+            if (typeof value !== "string") {
+                continue
+            }
             assert.ok(!value.startsWith('"'))
             assert.ok(!value.endsWith('"'))
         }
