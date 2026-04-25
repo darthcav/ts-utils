@@ -26,7 +26,7 @@
         "@logtape/logtape": "2.0.5"
     },
     "devDependencies": {
-        "@biomejs/biome": "2.4.12",
+        "@biomejs/biome": "2.4.13",
         "@types/node": "25.6.0",
         "asserttt": "1.0.1",
         "prettier": "3.8.3",
