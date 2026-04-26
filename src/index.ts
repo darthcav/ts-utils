@@ -11,9 +11,16 @@ import millisecondsToString from "./millisecondsToString.ts"
 import monitorMemory from "./monitorMemory.ts"
 import noop from "./noop.ts"
 import { type OsRelease, osRelease } from "./os-utils.ts"
-import type { RuntimeObject } from "./types.ts"
+import {
+    asRuntimeObject,
+    asString,
+    type RuntimeObject,
+    toRuntimeObjectArray,
+} from "./types.ts"
 
 export {
+    asRuntimeObject,
+    asString,
     getConsoleLogger,
     getDummyLogger,
     type LauncherFunction,
@@ -24,4 +31,5 @@ export {
     type OsRelease,
     osRelease,
     type RuntimeObject,
+    toRuntimeObjectArray,
 }

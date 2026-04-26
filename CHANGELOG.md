@@ -7,6 +7,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-04-26
+
+### Added
+
+- `asRuntimeObject` — narrows an `unknown` value to `RuntimeObject` when the value is a non-array
+  object, returning `undefined` otherwise.
+- `asString` — narrows an `unknown` value to `string`, returning `undefined` when the value is not a
+  string.
+- `toRuntimeObjectArray` — filters an `unknown` value down to a `RuntimeObject[]`, keeping only the
+  elements that are non-array objects; returns an empty array for non-array inputs.
+
 ## [0.9.0] - 2026-04-22
 
 ### Added
