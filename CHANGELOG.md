@@ -7,6 +7,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-04-26
+
 ### Added
 
 - `asRuntimeObject` — narrows an `unknown` value to `RuntimeObject` when the value is a non-array
