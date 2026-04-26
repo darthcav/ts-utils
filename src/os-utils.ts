@@ -30,6 +30,9 @@ const OS_RELEASE = "/etc/os-release"
  * On Windows, distinguishes Windows 11 from Windows 10 by NT build number
  * (>= 22000 → Windows 11).
  *
+ * @returns An {@link OsRelease} object on supported platforms, or `null` when
+ *   the platform is unsupported or `/etc/os-release` is absent on Linux.
+ *
  * @example
  * ```ts
  * import { osRelease } from "@darthcav/ts-utils"
