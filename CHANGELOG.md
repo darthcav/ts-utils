@@ -7,6 +7,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.10.1] - 2026-05-09
+
+### Changed
+
+- `@logtape/logtape` updated from 2.0.5 to 2.0.7.
+- `@biomejs/biome` updated from 2.4.13 to 2.4.14 (dev).
+- `@types/node` updated from 25.6.0 to 25.6.2 (dev).
+
 ## [0.10.0] - 2026-04-26
 
 ### Added
