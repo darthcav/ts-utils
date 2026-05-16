@@ -37,7 +37,7 @@
 
 ## Stack
 
-- Node.js >= 25 with native TypeScript execution (type stripping)
+- Node.js >= 26 with native TypeScript execution (type stripping)
 - TypeScript with strict mode and isolated declarations
 - Only erasable TS syntax (no enums, no runtime namespaces, no parameter properties)
 - ESM only (`"type": "module"`)

@@ -2,7 +2,7 @@
 
 ## Build, test, and lint commands
 
-- Use Node.js `>=25`.
+- Use Node.js `>=26`.
 - Install dependencies with `npm install`.
 - Build with `npm run build`.
 - Clean generated output with `npm run clean`.
@@ -35,7 +35,8 @@
     - `getDummyLogger`
     - `millisecondsToString`
     - `noop`
-    - `linuxRelease`, `windowsRelease`, `LinuxRelease`, and `WindowsRelease`
+    - `osRelease` and `OsRelease`
+    - `asRuntimeObject`, `asString`, `toRuntimeObjectArray`, and `RuntimeObject`
 - The library is organized as small leaf modules plus one orchestration module:
     - `src/main.ts` is the central process-bootstrap utility. It logs startup state, registers
       lifecycle and fatal error handlers, optionally starts memory monitoring, and then invokes an
@@ -46,9 +47,11 @@
       returns a category logger.
     - `src/loggers/getDummyLogger.ts` provides a no-op async logger factory for tests and any code
       path that needs a logger-shaped object without side effects.
-    - `src/os-utils.ts` contains the platform helpers: `linuxRelease()` parses `/etc/os-release`,
-      while `windowsRelease()` maps Windows kernel versions to human-readable names and includes the
-      architecture.
+    - `src/os-utils.ts` contains the platform helper `osRelease()`, which parses `/etc/os-release`
+      on Linux and maps Windows kernel versions to human-readable names. Returns `null` on
+      unsupported platforms or when `/etc/os-release` is absent on Linux.
+    - `src/types.ts` provides runtime type-narrowing helpers (`asRuntimeObject`, `asString`,
+      `toRuntimeObjectArray`) and the `RuntimeObject` type alias.
     - `src/millisecondsToString.ts` and `src/noop.ts` are standalone utility modules.
 - Documentation is generated from `src/index.ts` via TypeDoc into `public/`. TypeDoc uses
   `README.md` as the docs landing page.
@@ -57,7 +60,7 @@
 
 ## Key conventions
 
-- The project relies on native TypeScript execution in Node 25 rather than a runtime transpiler.
+- The project relies on native TypeScript execution in Node 26 rather than a runtime transpiler.
   Keep code compatible with type stripping: ESM only, no enums, no runtime namespaces, no parameter
   properties.
 - Use `.ts` extensions in relative imports and `import type` for type-only imports. The TypeScript
@@ -82,9 +85,8 @@
   logger. Be careful not to introduce duplicate or conflicting global logger configuration.
 - `getDummyLogger()` is intentionally async and returns `Promise<Logger>` so it can be used
   interchangeably with async logger setup flows.
-- `linuxRelease()` should return `null` outside Linux or when `/etc/os-release` is unavailable.
-  `windowsRelease()` should return `null` outside Windows and continue to distinguish Windows 11
-  from Windows 10 by build number.
+- `osRelease()` should return `null` on unsupported platforms or when `/etc/os-release` is absent on
+  Linux. It distinguishes Windows 11 from Windows 10 by NT build number (>= 22000 → Windows 11).
 - Tests use the built-in `node:test` runner with `suite`/`test`, top-level `await`, and Node’s
   experimental module mocking. When mocking ESM dependencies, call `mock.module()` before
   dynamically importing the module under test, as shown in the `os-utils` tests.
