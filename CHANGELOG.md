@@ -7,6 +7,20 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.10.2] - 2026-05-16
+
+### Fixed
+
+- Test files (`dist/__tests__`) excluded from the published package; they were inadvertently
+  included.
+
+### Changed
+
+- Minimum Node.js engine raised from `>=25` to `>=26`.
+- `@biomejs/biome` updated from 2.4.14 to 2.4.15 (dev).
+- `@types/node` updated from 25.6.2 to 25.8.0 (dev).
+- `yaml` updated from 2.8.4 to 2.9.0 (dev).
+
 ## [0.10.1] - 2026-05-09
 
 ### Changed

@@ -20,7 +20,8 @@
     "files": [
         "src",
         "!src/__tests__",
-        "dist"
+        "dist",
+        "!dist/__tests__"
     ],
     "dependencies": {
         "@logtape/logtape": "2.0.7"
@@ -38,7 +39,7 @@
         "url": "git+https://github.com/darthcav/ts-utils.git"
     },
     "engines": {
-        "node": ">=25"
+        "node": ">=26"
     },
     "scripts": {
         "\n===== Build =====": "",
