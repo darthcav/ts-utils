@@ -7,6 +7,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.10.3] - 2026-05-24
+
+### Changed
+
+- `@logtape/logtape` updated from 2.0.7 to 2.1.1.
+- `@types/node` updated from 25.8.0 to 25.9.1 (dev).
+
 ## [0.10.2] - 2026-05-16
 
 ### Fixed
