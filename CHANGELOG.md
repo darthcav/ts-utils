@@ -7,6 +7,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.10.4] - 2026-05-24
+
+### Changed
+
+- `markdown-it` updated to 14.2.0 (transitive, via `typedoc`).
+- `linkify-it` updated to 5.0.1 (transitive, via `typedoc`).
+
 ## [0.10.3] - 2026-05-24
 
 ### Changed
