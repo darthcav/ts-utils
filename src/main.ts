@@ -142,12 +142,10 @@ export function main(
 
     const __logger = logger.getChild(["main"])
 
-    __logger.info(`Main process launched [${title} :: ${pid}]`)
-    __logger.info(`Process name: ${name}`)
-    __logger.info(`Node.js environment: ${env["NODE_ENV"] ?? ""}`)
-    __logger.info(
-        `Node.js process options: ${execArgv.concat(env["NODE_OPTIONS"] ?? []).join(" | ")}`,
-    )
+    __logger.info`Main process launched [${title} :: ${pid}]`
+    __logger.info`Process name: ${name}`
+    __logger.info`Node.js environment: ${env["NODE_ENV"] ?? ""}`
+    __logger.info`Node.js process options: ${execArgv.concat(env["NODE_OPTIONS"] ?? []).join(" | ")}`
 
     if (monitorMemoryHours > 0) {
         monitorMemory(__logger, monitorMemoryHours)
@@ -156,26 +154,20 @@ export function main(
     if (defaultInterruptionHandler) {
         for (const signal of ["SIGINT", "SIGTERM"] as const) {
             process.on(signal, (signal) => {
-                __logger.error(
-                    `Process interrupted. Received signal: ${signal}`,
-                )
+                __logger.error`Process interrupted. Received signal: ${signal}`
                 process.exit(0)
             })
         }
     }
 
     process.on("uncaughtException", (error, origin) => {
-        __logger.error(
-            `Uncaught exception: ${error instanceof Error ? (error.stack ?? String(error)) : String(error)}`,
-        )
-        __logger.error(`Exception origin: ${origin}`)
+        __logger.error`Uncaught exception: ${error instanceof Error ? (error.stack ?? String(error)) : String(error)}`
+        __logger.error`Exception origin: ${origin}`
         process.exit(1)
     })
 
     process.on("unhandledRejection", (reason) => {
-        __logger.error(
-            `Unhandled promise rejection. Reason:\n${reason instanceof Error ? (reason.stack ?? String(reason)) : String(reason)}`,
-        )
+        __logger.error`Unhandled promise rejection. Reason:\n${reason instanceof Error ? (reason.stack ?? String(reason)) : String(reason)}`
         process.exit(1)
     })
 

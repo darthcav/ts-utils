@@ -7,6 +7,29 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.10.6] - 2026-06-15
+
+### Fixed
+
+- `main` now logs via logtape's tagged-template form instead of pre-interpolated strings. Previously
+  any `{...}` in an interpolated value (notably error stacks and `NODE_OPTIONS` containing JSON or
+  object literals) was parsed by logtape as a message placeholder and replaced with `null`,
+  corrupting crash diagnostics and startup logs.
+- `getConsoleLogger` no longer throws when called more than once. It now configures logtape with
+  `reset: true`, so repeated calls reconfigure cleanly instead of failing with "Already configured".
+- `millisecondsToString` now throws a clear `RangeError` for non-finite `ms` (`NaN`, `Infinity`) and
+  for an invalid `locale`, instead of surfacing a cryptic `Intl`/`Temporal` error.
+- `millisecondsToString` now formats negative durations from their magnitude with a leading `"-"`
+  (e.g. `-90_000` → `"-1m 30s"`) instead of producing nonsensical mixed-component output.
+
+## [0.10.5] - 2026-06-15
+
+### Changed
+
+- `@logtape/logtape` updated from 2.1.1 to 2.1.4.
+- `@biomejs/biome`, `@types/node`, and other dev dependencies updated.
+- `codecov-action` updated to v7 in the GitHub Actions workflow.
+
 ## [0.10.4] - 2026-05-24
 
 ### Changed

@@ -14,6 +14,11 @@ import {
  * color formatter with RFC 3339 timestamps. The internal `logtape/meta` logger
  * is silenced.
  *
+ * Logging is configured with `reset: true`, so this function is safe to call
+ * more than once: each call reconfigures logtape from scratch and the most
+ * recent call wins. (Without it, logtape throws because logging is already
+ * configured.)
+ *
  * @param name - The top-level category name (typically the application name).
  * @param lowestLevel - The minimum log level to output. Defaults to `"info"`.
  * @returns A promise resolving to a logger scoped to the given category.
@@ -39,6 +44,7 @@ export default async function getConsoleLogger(
                 parentSinks: "override",
             },
         ],
+        reset: true,
     })
     return getLogger([name])
 }
