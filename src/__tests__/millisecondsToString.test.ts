@@ -45,4 +45,32 @@ await suite("millisecondsToString", () => {
     test("uses the provided Spanish locale", () => {
         assert.equal(millisecondsToString(90_061_000, "es"), "1d 1h 1min 1s")
     })
+
+    test("formats negative durations from their magnitude with a leading minus", () => {
+        assert.equal(millisecondsToString(-1_000), "-1s")
+        assert.equal(millisecondsToString(-90_000), "-1m 30s")
+        assert.equal(millisecondsToString(-3_661_000), "-1h 1m 1s")
+        assert.equal(millisecondsToString(-90_061_000), "-1d 1h 1m 1s")
+    })
+
+    test("negative sub-second values round to an empty string (no stray minus)", () => {
+        assert.equal(millisecondsToString(-499), "")
+    })
+
+    test("throws a RangeError on non-finite input", () => {
+        assert.throws(() => millisecondsToString(Number.NaN), RangeError)
+        assert.throws(
+            () => millisecondsToString(Number.POSITIVE_INFINITY),
+            RangeError,
+        )
+        assert.throws(
+            () => millisecondsToString(Number.NEGATIVE_INFINITY),
+            RangeError,
+        )
+    })
+
+    test("throws a RangeError on an invalid locale", () => {
+        assert.throws(() => millisecondsToString(5_000, "en_US"), RangeError)
+        assert.throws(() => millisecondsToString(5_000, "!!"), RangeError)
+    })
 })

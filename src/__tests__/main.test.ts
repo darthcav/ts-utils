@@ -18,6 +18,22 @@ await suite("main", () => {
     const childLogger = { info: logMock, error: logMock } as unknown as Logger
     const logger = { getChild: () => childLogger } as unknown as Logger
 
+    // Log calls use logtape's tagged-template form, so a mocked call receives
+    // the template-string parts as `arguments[0]` and the interpolated values
+    // as the remaining arguments. Reconstruct the rendered message for
+    // assertions.
+    const render = (call: { arguments: readonly unknown[] }): string => {
+        const [template, ...values] = call.arguments
+        if (Array.isArray(template)) {
+            return template.reduce(
+                (acc: string, part: string, i: number) =>
+                    acc + part + (i < values.length ? String(values[i]) : ""),
+                "",
+            )
+        }
+        return String(template)
+    }
+
     beforeEach(() => {
         logMock.mock.resetCalls()
         onMock.mock.resetCalls()
@@ -37,7 +53,7 @@ await suite("main", () => {
     test("should log startup information", () => {
         main("test-app", logger)
 
-        const messages = logMock.mock.calls.map((c) => c.arguments[0])
+        const messages = logMock.mock.calls.map(render)
         assert.ok(messages.some((m) => /Main process launched/.test(m)))
         assert.ok(messages.some((m) => /Process name:/.test(m)))
         assert.ok(messages.some((m) => /Node\.js environment:/.test(m)))
@@ -51,7 +67,7 @@ await suite("main", () => {
         delete process.env["NODE_OPTIONS"]
         try {
             main("test-app", logger)
-            const messages = logMock.mock.calls.map((c) => c.arguments[0])
+            const messages = logMock.mock.calls.map(render)
             assert.ok(messages.some((m) => /Node\.js environment: $/.test(m)))
             assert.ok(messages.some((m) => /Node\.js process options:/.test(m)))
         } finally {
@@ -133,7 +149,7 @@ await suite("main", () => {
 
         assert.ok(
             logMock.mock.calls.some((c) =>
-                /Received signal: SIGINT/.test(c.arguments[0]),
+                /Received signal: SIGINT/.test(render(c)),
             ),
         )
         assert.equal(exitMock.mock.callCount(), 1)
@@ -152,7 +168,7 @@ await suite("main", () => {
 
         assert.ok(
             logMock.mock.calls.some((c) =>
-                /Received signal: SIGTERM/.test(c.arguments[0]),
+                /Received signal: SIGTERM/.test(render(c)),
             ),
         )
         assert.equal(exitMock.mock.callCount(), 1)
@@ -173,17 +189,48 @@ await suite("main", () => {
         assert.ok(
             logMock.mock.calls.some(
                 (c) =>
-                    /Uncaught exception:/.test(c.arguments[0]) &&
-                    c.arguments[0].includes(error.stack ?? error.message),
+                    /Uncaught exception:/.test(render(c)) &&
+                    render(c).includes(error.stack ?? error.message),
             ),
         )
         assert.ok(
-            logMock.mock.calls.some((c) =>
-                /Exception origin:/.test(c.arguments[0]),
-            ),
+            logMock.mock.calls.some((c) => /Exception origin:/.test(render(c))),
         )
         assert.equal(exitMock.mock.callCount(), 1)
         assert.equal(exitMock.mock.calls[0]?.arguments[0], 1)
+    })
+
+    test("logs errors via a tagged template so brace characters are preserved verbatim", () => {
+        main("test-app", logger)
+
+        const call = onMock.mock.calls.find(
+            (c) => c.arguments[0] === "uncaughtException",
+        )
+        assert.ok(call)
+        const handler = call.arguments[1]
+        const error = new Error('Unexpected token in JSON: {"key":"value"}')
+        handler(error, "uncaughtException")
+
+        // logtape parses '{...}' in a plain string argument as a placeholder and
+        // replaces it with null. The tagged-template form passes the message
+        // parts as an array and the interpolated value separately, so brace
+        // content survives. Assert both: the call uses the array (template)
+        // shape, and the braces are carried by the interpolated value.
+        const errorCall = logMock.mock.calls.find(
+            (c) =>
+                Array.isArray(c.arguments[0]) &&
+                /Uncaught exception:/.test(String(c.arguments[0][0])),
+        )
+        assert.ok(
+            errorCall,
+            "error should be logged via a tagged template, not a pre-interpolated string",
+        )
+        assert.ok(
+            errorCall.arguments
+                .slice(1)
+                .some((v) => String(v).includes('{"key":"value"}')),
+            "brace content must be preserved in the interpolated value",
+        )
     })
 
     test("should exit on uncaughtException with an Error and no stack", () => {
@@ -200,7 +247,7 @@ await suite("main", () => {
 
         assert.ok(
             logMock.mock.calls.some((c) =>
-                /Uncaught exception: Error: test error/.test(c.arguments[0]),
+                /Uncaught exception: Error: test error/.test(render(c)),
             ),
         )
         assert.equal(exitMock.mock.callCount(), 1)
@@ -219,7 +266,7 @@ await suite("main", () => {
 
         assert.ok(
             logMock.mock.calls.some((c) =>
-                /Uncaught exception: something went wrong/.test(c.arguments[0]),
+                /Uncaught exception: something went wrong/.test(render(c)),
             ),
         )
         assert.equal(exitMock.mock.callCount(), 1)
@@ -248,7 +295,7 @@ await suite("main", () => {
         assert.ok(
             logMock.mock.calls.some((c) =>
                 /Unhandled promise rejection\. Reason:[\s\S]*Error: rejection error/.test(
-                    c.arguments[0],
+                    render(c),
                 ),
             ),
         )
@@ -268,7 +315,7 @@ await suite("main", () => {
 
         assert.ok(
             logMock.mock.calls.some((c) =>
-                /Unhandled promise rejection\. Reason:/.test(c.arguments[0]),
+                /Unhandled promise rejection\. Reason:/.test(render(c)),
             ),
         )
         assert.equal(exitMock.mock.callCount(), 1)
@@ -289,9 +336,8 @@ await suite("main", () => {
         assert.ok(
             logMock.mock.calls.some(
                 (c) =>
-                    /Unhandled promise rejection\. Reason:/.test(
-                        c.arguments[0],
-                    ) && c.arguments[0].includes(error.stack ?? error.message),
+                    /Unhandled promise rejection\. Reason:/.test(render(c)) &&
+                    render(c).includes(error.stack ?? error.message),
             ),
         )
         assert.equal(exitMock.mock.callCount(), 1)
