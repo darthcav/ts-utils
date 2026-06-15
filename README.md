@@ -30,7 +30,8 @@ npm install @darthcav/ts-utils
 
 Configures logging and returns a `Logger` for the given category name. Records at or above
 `lowestLevel` are written to the console using an ANSI color formatter with RFC 3339 timestamps. The
-internal `logtape/meta` logger is silenced.
+internal `logtape/meta` logger is silenced. The function is safe to call more than once — each call
+reconfigures logtape from scratch (the most recent call wins).
 
 ```ts
 import { getConsoleLogger, main } from "@darthcav/ts-utils"
@@ -69,8 +70,9 @@ main("my-app", logger, () => {
 
 Converts a duration in milliseconds to a human-readable string via `Intl.DurationFormat`. Sub-second
 values are rounded to the nearest second, and any zero-valued components are omitted — so a
-zero-millisecond input returns an empty string. An optional BCP 47 locale tag (default `"en"`)
-controls the unit labels.
+zero-millisecond input returns an empty string. Negative durations are formatted from their
+magnitude and prefixed with `"-"`. An optional BCP 47 locale tag (default `"en"`) controls the unit
+labels. Throws a `RangeError` if `ms` is not finite or `locale` is not a valid BCP 47 tag.
 
 ```ts
 import { millisecondsToString } from "@darthcav/ts-utils"
@@ -78,6 +80,7 @@ import { millisecondsToString } from "@darthcav/ts-utils"
 millisecondsToString(3_661_000)        // "1h 1m 1s"
 millisecondsToString(90_000)           // "1m 30s"
 millisecondsToString(5_000)            // "5s"
+millisecondsToString(-90_000)          // "-1m 30s"
 millisecondsToString(90_061_000, "es") // "1d 1h 1min 1s"
 ```
 
