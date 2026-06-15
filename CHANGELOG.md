@@ -7,6 +7,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.10.6] - 2026-06-15
+
 ### Fixed
 
 - `main` now logs via logtape's tagged-template form instead of pre-interpolated strings. Previously
@@ -19,6 +21,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   for an invalid `locale`, instead of surfacing a cryptic `Intl`/`Temporal` error.
 - `millisecondsToString` now formats negative durations from their magnitude with a leading `"-"`
   (e.g. `-90_000` → `"-1m 30s"`) instead of producing nonsensical mixed-component output.
+
+## [0.10.5] - 2026-06-15
+
+### Changed
+
+- `@logtape/logtape` updated from 2.1.1 to 2.1.4.
+- `@biomejs/biome`, `@types/node`, and other dev dependencies updated.
+- `codecov-action` updated to v7 in the GitHub Actions workflow.
 
 ## [0.10.4] - 2026-05-24
 
