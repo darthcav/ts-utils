@@ -7,6 +7,21 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.10.7] - 2026-06-18
+
+### Changed
+
+- `@logtape/logtape` updated from 2.1.4 to 2.1.5.
+
+### Security
+
+- `millisecondsToString` now bounds its internal `Intl.DurationFormat` cache to 64 entries, evicting
+  the least-recently-inserted formatter when full. This prevents unbounded memory growth when many
+  distinct (valid) locales are requested, e.g. a locale derived from untrusted input.
+- `monitorMemory` now throws a `RangeError` when `hours` is not a finite number greater than `0`.
+  Previously a non-positive value produced a degenerate `setInterval` delay (clamped to ~0), causing
+  a tight logging loop.
+
 ## [0.10.6] - 2026-06-15
 
 ### Fixed

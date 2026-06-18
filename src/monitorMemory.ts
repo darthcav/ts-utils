@@ -9,7 +9,9 @@ import millisecondsToString from "./millisecondsToString.ts"
  * {@link https://nodejs.org/api/process.html#processmemoryusage | process.memoryUsage()}.
  *
  * @param logger - Logger instance used to emit the memory reports.
- * @param hours - Interval between reports in hours. Defaults to `24`.
+ * @param hours - Interval between reports in hours. Must be a finite number
+ *   greater than `0`. Defaults to `24`.
+ * @throws {RangeError} If `hours` is not a finite number greater than `0`.
  *
  * @example
  * ```ts
@@ -23,6 +25,11 @@ export default function monitorMemory(
     logger: Logger,
     hours: number = 24,
 ): void {
+    if (!Number.isFinite(hours) || hours <= 0) {
+        throw new RangeError(
+            `monitorMemory: "hours" must be a finite number greater than 0, received ${hours}`,
+        )
+    }
     const delay = 60 * 60 * 1_000 * hours
     setInterval(() => {
         const { rss, heapTotal, heapUsed, external } = memoryUsage()
