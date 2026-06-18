@@ -7,6 +7,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.10.7] - 2026-06-18
+
 ### Changed
 
 - `@logtape/logtape` updated from 2.1.4 to 2.1.5.
