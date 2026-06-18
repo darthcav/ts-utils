@@ -7,6 +7,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- `@logtape/logtape` updated from 2.1.4 to 2.1.5.
+
 ### Security
 
 - `millisecondsToString` now bounds its internal `Intl.DurationFormat` cache to 64 entries, evicting
