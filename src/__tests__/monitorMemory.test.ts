@@ -44,4 +44,17 @@ await suite("monitorMemory", () => {
         assert.match(messages[0] ?? "", /Process uptime:/)
         assert.match(messages[1] ?? "", /Process memory/)
     })
+
+    test("throws a RangeError on non-positive or non-finite hours", () => {
+        for (const hours of [
+            0,
+            -1,
+            Number.NaN,
+            Number.POSITIVE_INFINITY,
+            Number.NEGATIVE_INFINITY,
+        ]) {
+            assert.throws(() => monitorMemory(logger, hours), RangeError)
+        }
+        assert.equal(setIntervalMock.mock.calls.length, 0)
+    })
 })

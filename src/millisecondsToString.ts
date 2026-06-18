@@ -1,3 +1,11 @@
+/**
+ * Maximum number of {@link Intl.DurationFormat} instances retained in the
+ * cache. Bounds memory growth when many distinct locales are requested (e.g.
+ * a locale derived from untrusted input). When the limit is reached, the
+ * least-recently-inserted entry is evicted.
+ */
+const MAX_CACHED_FORMATTERS = 64
+
 const durationFormatters = new Map<string, Intl.DurationFormat>()
 
 function getDurationFormatter(locale: string): Intl.DurationFormat {
@@ -12,6 +20,12 @@ function getDurationFormatter(locale: string): Intl.DurationFormat {
                 `millisecondsToString: invalid locale "${locale}"`,
                 { cause },
             )
+        }
+        if (durationFormatters.size >= MAX_CACHED_FORMATTERS) {
+            const oldest = durationFormatters.keys().next().value
+            if (oldest !== undefined) {
+                durationFormatters.delete(oldest)
+            }
         }
         durationFormatters.set(locale, formatter)
     }
