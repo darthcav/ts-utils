@@ -28,7 +28,7 @@
     },
     "devDependencies": {
         "@biomejs/biome": "2.5.0",
-        "@types/node": "25.9.3",
+        "@types/node": "26.0.0",
         "asserttt": "1.0.1",
         "prettier": "3.8.4",
         "shx": "0.4.0",
