@@ -52,8 +52,8 @@ const logger = await getConsoleLogger("my-app", "debug")
 
 ### `monitorMemory`
 
-Starts a periodic interval that logs process uptime and memory usage (in bytes). The interval
-defaults to every 24 hours.
+Starts a periodic interval that logs process uptime and memory usage (in bytes) through a
+`"monitorMemory"` child category of the given logger. The interval defaults to every 24 hours.
 
 ```ts
 import { getConsoleLogger, main, monitorMemory } from "@darthcav/ts-utils"
@@ -68,18 +68,20 @@ main("my-app", logger, () => {
 
 ### `millisecondsToString`
 
-Converts a duration in milliseconds to a human-readable string via `Intl.DurationFormat`. Sub-second
-values are rounded to the nearest second, and any zero-valued components are omitted — so a
-zero-millisecond input returns an empty string. Negative durations are formatted from their
-magnitude and prefixed with `"-"`. An optional BCP 47 locale tag (default `"en"`) controls the unit
-labels. Throws a `RangeError` if `ms` is not finite or `locale` is not a valid BCP 47 tag.
+Converts a duration in milliseconds to a human-readable string via `Intl.DurationFormat`.
+Milliseconds are shown as their own integer component (fractional inputs are rounded to the nearest
+millisecond), and any zero-valued components are omitted — so a zero-millisecond input returns an
+empty string. Negative durations are formatted from their magnitude and prefixed with `"-"`. An
+optional BCP 47 locale tag (default `"en"`) controls the unit labels. Throws a `RangeError` if `ms`
+is not finite or `locale` is not a valid BCP 47 tag.
 
 ```ts
 import { millisecondsToString } from "@darthcav/ts-utils"
 
 millisecondsToString(3_661_000)        // "1h 1m 1s"
 millisecondsToString(90_000)           // "1m 30s"
-millisecondsToString(5_000)            // "5s"
+millisecondsToString(5_250)            // "5s 250ms"
+millisecondsToString(499)              // "499ms"
 millisecondsToString(-90_000)          // "-1m 30s"
 millisecondsToString(90_061_000, "es") // "1d 1h 1min 1s"
 ```
@@ -216,7 +218,7 @@ public/             # Documentation output (generated)
 
 [node-version]: https://img.shields.io/badge/node-%3E%3D26-orange.svg?style=flat-square
 [node-url]: https://nodejs.org
-[version-image]: https://img.shields.io/badge/version-0.10.7-blue.svg?style=flat-square
+[version-image]: https://img.shields.io/badge/version-0.10.8-blue.svg?style=flat-square
 [ci-badge]: https://github.com/darthcav/ts-utils/actions/workflows/tests.yml/badge.svg
 [coverage-badge]:
     https://codecov.io/github/darthcav/ts-utils/branch/dev/graph/badge.svg?token=RNEPER4KEI

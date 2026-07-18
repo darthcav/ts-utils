@@ -7,6 +7,19 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.10.8] - 2026-07-18
+
+### Changed
+
+- `monitorMemory` now emits its reports through a `"monitorMemory"` child category of the given
+  logger instead of logging directly with it.
+- `millisecondsToString` now shows milliseconds as their own integer component (e.g. `5_250` →
+  `"5s 250ms"`, `499` → `"499ms"`) instead of rounding sub-second values to the nearest second.
+  Fractional inputs are rounded to the nearest millisecond.
+- `@logtape/logtape` updated from 2.1.5 to 2.2.4.
+- `@biomejs/biome`, `@types/node`, `prettier`, and `typedoc` dev dependencies updated.
+- `actions/setup-node` and `actions/checkout` updated in the GitHub Actions workflows.
+
 ## [0.10.7] - 2026-06-18
 
 ### Changed

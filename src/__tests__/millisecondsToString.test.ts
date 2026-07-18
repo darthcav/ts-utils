@@ -11,11 +11,17 @@ await suite("millisecondsToString", () => {
         assert.equal(millisecondsToString(0), "")
     })
 
-    test("sub-second values are rounded to nearest second", () => {
-        assert.equal(millisecondsToString(499), "")
-        assert.equal(millisecondsToString(500), "1s")
-        assert.equal(millisecondsToString(1_499), "1s")
-        assert.equal(millisecondsToString(1_500), "2s")
+    test("milliseconds are shown as their own integer component", () => {
+        assert.equal(millisecondsToString(499), "499ms")
+        assert.equal(millisecondsToString(1_500), "1s 500ms")
+        assert.equal(millisecondsToString(5_250), "5s 250ms")
+        assert.equal(millisecondsToString(90_075), "1m 30s 75ms")
+    })
+
+    test("fractional inputs are rounded to the nearest millisecond", () => {
+        assert.equal(millisecondsToString(499.4), "499ms")
+        assert.equal(millisecondsToString(499.5), "500ms")
+        assert.equal(millisecondsToString(0.4), "")
     })
 
     test("minutes and seconds", () => {
@@ -51,10 +57,11 @@ await suite("millisecondsToString", () => {
         assert.equal(millisecondsToString(-90_000), "-1m 30s")
         assert.equal(millisecondsToString(-3_661_000), "-1h 1m 1s")
         assert.equal(millisecondsToString(-90_061_000), "-1d 1h 1m 1s")
+        assert.equal(millisecondsToString(-499), "-499ms")
     })
 
-    test("negative sub-second values round to an empty string (no stray minus)", () => {
-        assert.equal(millisecondsToString(-499), "")
+    test("negative fractional values that round to zero produce an empty string (no stray minus)", () => {
+        assert.equal(millisecondsToString(-0.4), "")
     })
 
     test("throws a RangeError on non-finite input", () => {

@@ -35,12 +35,13 @@ function getDurationFormatter(locale: string): Intl.DurationFormat {
 
 /**
  * Converts a duration in milliseconds to a human-readable string such as
- * `"1d 4h 32m 10s"`.
+ * `"1d 4h 32m 10s 250ms"`.
  *
- * Sub-second values are rounded to the nearest second. Any zero-valued
- * components are omitted from the formatted output, so a zero-millisecond
- * input produces an empty string. Negative durations are formatted from their
- * magnitude and prefixed with `"-"` (e.g. `-90_000` → `"-1m 30s"`).
+ * Milliseconds are shown as their own integer component; fractional inputs
+ * are rounded to the nearest millisecond. Any zero-valued components are
+ * omitted from the formatted output, so a zero-millisecond input produces an
+ * empty string. Negative durations are formatted from their magnitude and
+ * prefixed with `"-"` (e.g. `-90_000` → `"-1m 30s"`).
  *
  * @param ms - Duration in milliseconds. Must be a finite number.
  * @param locale - BCP 47 locale tag passed to `Intl.DurationFormat`. Defaults
@@ -53,7 +54,8 @@ function getDurationFormatter(locale: string): Intl.DurationFormat {
  * ```ts
  * millisecondsToString(3_661_000)       // "1h 1m 1s"
  * millisecondsToString(90_000)          // "1m 30s"
- * millisecondsToString(5_000)           // "5s"
+ * millisecondsToString(5_250)           // "5s 250ms"
+ * millisecondsToString(499)             // "499ms"
  * millisecondsToString(-90_000)         // "-1m 30s"
  * millisecondsToString(90_061_000, "es") // "1d 1h 1min 1s"
  * ```
@@ -68,15 +70,16 @@ export default function millisecondsToString(
         )
     }
 
-    const totalSeconds = Math.round(ms / 1000)
-    const magnitude = Math.abs(totalSeconds)
+    const totalMilliseconds = Math.round(ms)
+    const magnitude = Math.abs(totalMilliseconds)
 
     const formatted = getDurationFormatter(locale).format({
-        days: Math.floor(magnitude / 86400),
-        hours: Math.floor((magnitude % 86400) / 3600),
-        minutes: Math.floor((magnitude % 3600) / 60),
-        seconds: magnitude % 60,
+        days: Math.floor(magnitude / 86_400_000),
+        hours: Math.floor((magnitude % 86_400_000) / 3_600_000),
+        minutes: Math.floor((magnitude % 3_600_000) / 60_000),
+        seconds: Math.floor((magnitude % 60_000) / 1000),
+        milliseconds: magnitude % 1000,
     })
 
-    return totalSeconds < 0 && formatted ? `-${formatted}` : formatted
+    return totalMilliseconds < 0 && formatted ? `-${formatted}` : formatted
 }
