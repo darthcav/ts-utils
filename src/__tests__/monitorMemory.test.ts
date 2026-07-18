@@ -5,12 +5,17 @@ import monitorMemory from "../monitorMemory.ts"
 
 await suite("monitorMemory", () => {
     const logMock = mock.fn()
-    const logger = { info: logMock } as unknown as Logger
+    const childLogger = { info: logMock } as unknown as Logger
+    const getChildMock = mock.fn(
+        (_subcategory: string | readonly string[]) => childLogger,
+    )
+    const logger = { getChild: getChildMock } as unknown as Logger
 
     let setIntervalMock: ReturnType<typeof mock.method>
 
     beforeEach(() => {
         logMock.mock.resetCalls()
+        getChildMock.mock.resetCalls()
         setIntervalMock = mock.method(
             globalThis,
             "setInterval",
@@ -43,6 +48,14 @@ await suite("monitorMemory", () => {
         const messages = logMock.mock.calls.map((c) => String(c.arguments[0]))
         assert.match(messages[0] ?? "", /Process uptime:/)
         assert.match(messages[1] ?? "", /Process memory/)
+    })
+
+    test("logs through a 'monitorMemory' child of the given logger", () => {
+        monitorMemory(logger)
+        assert.equal(getChildMock.mock.calls.length, 1)
+        assert.deepEqual(getChildMock.mock.calls[0]?.arguments[0], [
+            "monitorMemory",
+        ])
     })
 
     test("throws a RangeError on non-positive or non-finite hours", () => {

@@ -7,8 +7,11 @@ import millisecondsToString from "./millisecondsToString.ts"
  *
  * Memory figures are reported in bytes as returned by Node.js
  * {@link https://nodejs.org/api/process.html#processmemoryusage | process.memoryUsage()}.
+ * Reports are emitted through a `"monitorMemory"` child category of the given
+ * logger.
  *
- * @param logger - Logger instance used to emit the memory reports.
+ * @param logger - Logger whose `"monitorMemory"` child emits the memory
+ *   reports.
  * @param hours - Interval between reports in hours. Must be a finite number
  *   greater than `0`. Defaults to `24`.
  * @throws {RangeError} If `hours` is not a finite number greater than `0`.
@@ -17,8 +20,10 @@ import millisecondsToString from "./millisecondsToString.ts"
  * ```ts
  * import { getConsoleLogger, monitorMemory } from "@darthcav/ts-utils"
  *
- * monitorMemory(getConsoleLogger())     // every 24 hours
- * monitorMemory(getConsoleLogger(), 1)  // every hour
+ * const logger = await getConsoleLogger("my-app")
+ *
+ * monitorMemory(logger)     // every 24 hours
+ * monitorMemory(logger, 1)  // every hour
  * ```
  */
 export default function monitorMemory(
@@ -30,11 +35,15 @@ export default function monitorMemory(
             `monitorMemory: "hours" must be a finite number greater than 0, received ${hours}`,
         )
     }
+    const __logger = logger.getChild(["monitorMemory"])
+
     const delay = 60 * 60 * 1_000 * hours
     setInterval(() => {
         const { rss, heapTotal, heapUsed, external } = memoryUsage()
-        logger.info(`Process uptime: ${millisecondsToString(uptime() * 1_000)}`)
-        logger.info(
+        __logger.info(
+            `Process uptime: ${millisecondsToString(uptime() * 1_000)}`,
+        )
+        __logger.info(
             `Process memory - Resident set size: ${rss} | Heap total: ${heapTotal} | Heap used: ${heapUsed} | External: ${external}`,
         )
     }, delay)
