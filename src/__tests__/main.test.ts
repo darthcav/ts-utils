@@ -15,7 +15,11 @@ await suite("main", () => {
     const exitMock = mock.fn()
     const setIntervalMock = mock.fn()
 
-    const childLogger = { info: logMock, error: logMock } as unknown as Logger
+    const childLogger: Logger = {
+        info: logMock,
+        error: logMock,
+        getChild: () => childLogger,
+    } as unknown as Logger
     const logger = { getChild: () => childLogger } as unknown as Logger
 
     // Log calls use logtape's tagged-template form, so a mocked call receives
