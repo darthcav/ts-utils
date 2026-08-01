@@ -24,7 +24,7 @@
         "!dist/__tests__"
     ],
     "dependencies": {
-        "@logtape/logtape": "2.2.4"
+        "@logtape/logtape": "2.3.0"
     },
     "devDependencies": {
         "@biomejs/biome": "2.5.6",
