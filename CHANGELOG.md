@@ -7,6 +7,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.10.10] - 2026-08-10
+
+### Fixed
+
+- `.github/dependabot.yml` no longer uses an invalid `cronjob` expression. The "first Saturday of
+  the month" schedule relied on a `*/100,1-7 * 6` trick meant to force day-of-month/day-of-week to
+  combine with AND; Dependabot rejected it as invalid (standard 5-field cron only ORs those fields).
+  Both `npm` and `github-actions` updates now use `interval: monthly` instead.
+
 ## [0.10.9] - 2026-08-10
 
 ### Changed
