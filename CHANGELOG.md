@@ -7,6 +7,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.10.9] - 2026-08-10
+
+### Changed
+
+- `@logtape/logtape` updated from 2.2.4 to 2.3.0.
+- `@biomejs/biome`, `@types/node`, and `prettier` dev dependencies updated.
+- `brace-expansion`, `mdurl`, and `minimatch` transitive dependencies updated.
+- Dependabot checks now run on the first Saturday of each month instead of weekly.
+
 ## [0.10.8] - 2026-07-18
 
 ### Changed
