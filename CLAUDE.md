@@ -4,10 +4,30 @@
 
 ### Branching Strategy
 
-- **Main branch**: `main` - production-ready code only
+- **`main`** - production branch, kept in sync with published npm releases. Do not commit directly;
+  it only moves via a release merge from `dev` (see Releases below).
+- **`dev`** - default working branch. Day-to-day commits, PRs, and Dependabot updates
+  (`.github/dependabot.yml` targets `dev`, `interval: monthly`) land here first.
 - **Feature branches**: `feature/<feature-name>` - for new features
 - **Bugfix branches**: `fix/<issue-description>` - for bug fixes
 - **Always create a feature branch** before making changes to existing functionality
+- Feature/bugfix branches PR into `dev`, not `main`, directly
+
+### Releases
+
+- Cut manually: bump the version in `package.json`/`package-lock.json`, update `CHANGELOG.md` and
+  the README version badge on `dev`, then merge `dev` into `main` with a `Release vX.Y.Z` commit
+  message, tag `vX.Y.Z`, and push both.
+- Pushing the tag triggers `.github/workflows/publish.yml`, which runs
+  `npm publish --provenance --access public` — this is a real, public, irreversible action, so don't
+  tag/push a release without the user's explicit go-ahead.
+- `.github/workflows/sync-dev.yml` runs on every push to `main`: it opens (and immediately merges) a
+  `main` → `dev` PR so `dev` doesn't drift behind the release commit. It merges right away rather
+  than relying on `--auto`/auto-merge, since `dev` has no branch-protection rules for that feature
+  to gate on.
+- This sync workflow needs the repository setting **"Allow GitHub Actions to create and approve pull
+  requests"** enabled (Settings → Actions → General) — without it, `gh pr create` fails and `dev`
+  silently falls behind again.
 
 ### Commit Practices
 
