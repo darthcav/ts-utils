@@ -36,7 +36,8 @@ jobs:
             PR_NUMBER=$(gh pr list --repo "$GITHUB_REPOSITORY" --base dev --head main --state open --json number --jq '.[0].number')
           fi
 
-          # Best-effort: merges automatically once required checks pass. Requires
-          # "Allow auto-merge" to be enabled in the repository settings; otherwise
-          # the PR is left open for a manual merge.
-          gh pr merge "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --merge --auto || true
+          # Merge immediately: `dev` has no branch protection/required checks to
+          # wait on, and `--auto` needs branch protection configured to work at
+          # all, so it would just leave the PR open forever. This content was
+          # already vetted on `main`, so there's nothing to gate on here.
+          gh pr merge "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --merge
