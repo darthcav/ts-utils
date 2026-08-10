@@ -1,0 +1,36 @@
+##### GitHub CI configuration #####
+##### Keeps `dev` from drifting behind `main` after a release lands on `main`. #####
+
+name: Sync main into dev
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    name: Open/update sync PR
+    steps:
+      - name: Ensure a main -> dev PR exists
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PR_NUMBER=$(gh pr list --repo "$GITHUB_REPOSITORY" --base dev --head main --state open --json number --jq '.[0].number')
+          if [ -z "$PR_NUMBER" ]; then
+            if ! gh pr create --repo "$GITHUB_REPOSITORY" --base dev --head main \
+              --title "chore: sync main into dev" \
+              --body "Automated sync opened after a push to \`main\`, so \`dev\` doesn't fall behind. New commits to \`main\` update this PR automatically. If GitHub reports conflicts, resolve them locally (merge \`main\` into \`dev\` and push), then close this PR."; then
+              echo "Nothing to sync (dev already matches main)."
+              exit 0
+            fi
+            PR_NUMBER=$(gh pr list --repo "$GITHUB_REPOSITORY" --base dev --head main --state open --json number --jq '.[0].number')
+          fi
+
+          # Best-effort: merges automatically once required checks pass. Requires
+          # "Allow auto-merge" to be enabled in the repository settings; otherwise
+          # the PR is left open for a manual merge.
+          gh pr merge "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --merge --auto || true

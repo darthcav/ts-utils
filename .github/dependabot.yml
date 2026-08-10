@@ -3,10 +3,7 @@ updates:
   - package-ecosystem: npm
     directory: /
     schedule:
-      interval: cron
-      # "*/100" forces the day-of-month/day-of-week fields to combine with AND
-      # instead of cron's default OR, so this fires only on the first Saturday.
-      cronjob: "0 6 */100,1-7 * 6"
+      interval: monthly
     target-branch: dev
     groups:
       dev-dependencies:
@@ -18,8 +15,7 @@ updates:
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: cron
-      cronjob: "0 6 */100,1-7 * 6"
+      interval: monthly
     target-branch: dev
     groups:
       github-actions:
