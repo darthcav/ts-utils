@@ -21,11 +21,17 @@ jobs:
         run: |
           PR_NUMBER=$(gh pr list --repo "$GITHUB_REPOSITORY" --base dev --head main --state open --json number --jq '.[0].number')
           if [ -z "$PR_NUMBER" ]; then
-            if ! gh pr create --repo "$GITHUB_REPOSITORY" --base dev --head main \
+            CREATE_OUTPUT=$(gh pr create --repo "$GITHUB_REPOSITORY" --base dev --head main \
               --title "chore: sync main into dev" \
-              --body "Automated sync opened after a push to \`main\`, so \`dev\` doesn't fall behind. New commits to \`main\` update this PR automatically. If GitHub reports conflicts, resolve them locally (merge \`main\` into \`dev\` and push), then close this PR."; then
-              echo "Nothing to sync (dev already matches main)."
-              exit 0
+              --body "Automated sync opened after a push to \`main\`, so \`dev\` doesn't fall behind. New commits to \`main\` update this PR automatically. If GitHub reports conflicts, resolve them locally (merge \`main\` into \`dev\` and push), then close this PR." 2>&1) \
+              && CREATE_STATUS=0 || CREATE_STATUS=$?
+            if [ "$CREATE_STATUS" -ne 0 ]; then
+              if echo "$CREATE_OUTPUT" | grep -qi "No commits between"; then
+                echo "Nothing to sync (dev already matches main)."
+                exit 0
+              fi
+              echo "$CREATE_OUTPUT" >&2
+              exit "$CREATE_STATUS"
             fi
             PR_NUMBER=$(gh pr list --repo "$GITHUB_REPOSITORY" --base dev --head main --state open --json number --jq '.[0].number')
           fi
