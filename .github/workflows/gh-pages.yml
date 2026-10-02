@@ -1,6 +1,5 @@
 ##### GitHub CI configuration #####
 ##### See: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs #####
-##### Actions are pinned to commit SHAs (Dependabot keeps them and the version comments current). #####
 
 name: Publishes TypeDoc documentation in GitHub Pages
 on:
@@ -17,10 +16,10 @@ jobs:
     runs-on: ubuntu-latest
     name: Build documentation
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@v7
         with:
           node-version: 26.x
           cache: "npm"
@@ -28,8 +27,8 @@ jobs:
       - run: npm run build --if-present
       - run: npm run doc
       - run: cp LICENSE ./public/LICENSE
-      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
-      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: ./public
   deploy:
@@ -45,4 +44,4 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+        uses: actions/deploy-pages@v5

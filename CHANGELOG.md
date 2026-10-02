@@ -16,7 +16,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Security
 
-- GitHub Actions in all workflows are pinned to commit SHAs instead of movable tags.
 - `npm ci` runs with `--ignore-scripts` in CI, so dependency install scripts never run (in
   particular not in jobs holding an OIDC token).
 - Checkouts use `persist-credentials: false`; `tests.yml` now sets `contents: read` explicitly, and
