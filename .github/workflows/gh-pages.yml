@@ -1,5 +1,6 @@
 ##### GitHub CI configuration #####
 ##### See: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs #####
+##### Actions are pinned to commit SHAs (Dependabot keeps them and the version comments current). #####
 
 name: Publishes TypeDoc documentation in GitHub Pages
 on:
@@ -7,8 +8,6 @@ on:
     branches: [ main ]
 permissions:
   contents: read
-  pages: write
-  id-token: write
 concurrency:
   group: pages
   cancel-in-progress: false
@@ -18,26 +17,32 @@ jobs:
     runs-on: ubuntu-latest
     name: Build documentation
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 26.x
           cache: "npm"
-      - run: npm ci
+      - run: npm ci --ignore-scripts
       - run: npm run build --if-present
       - run: npm run doc
       - run: cp LICENSE ./public/LICENSE
-      - uses: actions/configure-pages@v6
-      - uses: actions/upload-pages-artifact@v5
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: ./public
   deploy:
     needs: build
     runs-on: ubuntu-latest
     name: Deploy to GitHub Pages
+    # Only the deploy job gets the Pages write and OIDC permissions.
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v5
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

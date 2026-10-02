@@ -14,6 +14,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   so a value such as `monitorMemory(logger, 1000)` (or `main(name, logger, 1000)`) flooded the logs
   with a report every millisecond.
 
+### Security
+
+- GitHub Actions in all workflows are pinned to commit SHAs instead of movable tags.
+- `npm ci` runs with `--ignore-scripts` in CI, so dependency install scripts never run (in
+  particular not in jobs holding an OIDC token).
+- Checkouts use `persist-credentials: false`; `tests.yml` now sets `contents: read` explicitly, and
+  `gh-pages.yml` grants `pages: write`/`id-token: write` only to the deploy job.
+- `publish.yml` gains a `verify` job that runs without the npm OIDC token: it checks that the tag
+  matches the `package.json` version and is on `main`, then runs lint, typecheck, and tests. The
+  `publish` job runs in an `npm` environment (for required-reviewer approval), skips the npm cache,
+  and publishes with `--ignore-scripts` after an explicit build.
+
 ## [0.10.10] - 2026-08-10
 
 ### Fixed

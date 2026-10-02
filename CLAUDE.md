@@ -21,6 +21,13 @@
 - Pushing the tag triggers `.github/workflows/publish.yml`, which runs
   `npm publish --provenance --access public` — this is a real, public, irreversible action, so don't
   tag/push a release without the user's explicit go-ahead.
+- `publish.yml` first runs a `verify` job without the npm OIDC token: it fails unless the tag equals
+  `v` + the `package.json` version and points to a commit on `main`, then runs lint, typecheck, and
+  tests. The `publish` job then installs with `--ignore-scripts`, without the npm cache, in the
+  `npm` environment (add required reviewers to that environment so each publish needs approval).
+- Workflow actions are pinned to commit SHAs with a `# vX.Y.Z` comment; Dependabot updates both.
+  Keep that format when adding or changing actions, and use `npm ci --ignore-scripts` and
+  `persist-credentials: false` on checkouts.
 - `.github/workflows/sync-dev.yml` runs on every push to `main`: it opens (and immediately merges) a
   `main` → `dev` PR so `dev` doesn't drift behind the release commit. It merges right away rather
   than relying on `--auto`/auto-merge, since `dev` has no branch-protection rules for that feature
