@@ -24,11 +24,11 @@
         "!dist/__tests__"
     ],
     "dependencies": {
-        "@logtape/logtape": "2.3.9"
+        "@logtape/logtape": "2.3.10"
     },
     "devDependencies": {
-        "@biomejs/biome": "2.5.14",
-        "@types/node": "26.6.3",
+        "@biomejs/biome": "2.5.15",
+        "@types/node": "26.6.4",
         "asserttt": "1.0.1",
         "prettier": "3.9.9",
         "shx": "0.4.0",
