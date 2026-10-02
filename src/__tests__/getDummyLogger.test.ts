@@ -2,7 +2,7 @@ import assert from "node:assert/strict"
 import { suite, test } from "node:test"
 import type { Logger } from "@logtape/logtape"
 import type { Assert, Equal } from "asserttt"
-import getDummyLogger from "../loggers/getDummyLogger.ts"
+import { getDummyLogger } from "../loggers/getDummyLogger.ts"
 
 type _ReturnsLoggerSynchronously = Assert<
     Equal<ReturnType<typeof getDummyLogger>, Logger>

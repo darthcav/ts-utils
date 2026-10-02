@@ -29,6 +29,10 @@ This release changes the behavior of `main`, `osRelease`, `asRuntimeObject`, and
   no longer needs `as unknown as` casts: every logging method is a single no-op that satisfies all
   logtape overloads, returning an already-settled promise for the async-properties ones.
 
+- All modules now use named exports only (enforced by Biome's `noDefaultExport` rule), and
+  `src/os-utils.ts` is renamed to `src/osRelease.ts` so single-function modules are named after
+  their function. The public API is unchanged: the package only exposes its root entry point, whose
+  named exports are now pinned by a test.
 - `@logtape/logtape` updated from 2.3.0 to 2.3.10.
 - `@biomejs/biome` (2.5.7 → 2.5.15), `@types/node` (26.2.0 → 26.6.4), and `prettier` (3.9.6 → 3.9.9)
   dev dependencies updated.

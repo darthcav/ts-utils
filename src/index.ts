@@ -4,13 +4,13 @@
  * @packageDocumentation
  */
 
-import getConsoleLogger from "./loggers/getConsoleLogger.ts"
-import getDummyLogger from "./loggers/getDummyLogger.ts"
+import { getConsoleLogger } from "./loggers/getConsoleLogger.ts"
+import { getDummyLogger } from "./loggers/getDummyLogger.ts"
 import { type LauncherFunction, main } from "./main.ts"
-import millisecondsToString from "./millisecondsToString.ts"
-import monitorMemory from "./monitorMemory.ts"
-import noop from "./noop.ts"
-import { type OsRelease, osRelease } from "./os-utils.ts"
+import { millisecondsToString } from "./millisecondsToString.ts"
+import { monitorMemory } from "./monitorMemory.ts"
+import { noop } from "./noop.ts"
+import { type OsRelease, osRelease } from "./osRelease.ts"
 import {
     asRuntimeObject,
     asString,

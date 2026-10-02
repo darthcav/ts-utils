@@ -3,6 +3,4 @@
  *
  * Useful as a placeholder callback, default handler, or in tests.
  */
-const noop = (): void => {}
-
-export default noop
+export const noop = (): void => {}

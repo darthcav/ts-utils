@@ -60,10 +60,7 @@ function getDurationFormatter(locale: string): Intl.DurationFormat {
  * millisecondsToString(90_061_000, "es") // "1d 1h 1min 1s"
  * ```
  */
-export default function millisecondsToString(
-    ms: number,
-    locale = "en",
-): string {
+export function millisecondsToString(ms: number, locale = "en"): string {
     if (!Number.isFinite(ms)) {
         throw new RangeError(
             `millisecondsToString: "ms" must be a finite number, received ${ms}`,

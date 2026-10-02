@@ -1,6 +1,6 @@
 import { memoryUsage, uptime } from "node:process"
 import type { Logger } from "@logtape/logtape"
-import millisecondsToString from "./millisecondsToString.ts"
+import { millisecondsToString } from "./millisecondsToString.ts"
 
 /** Shortest allowed reporting interval: one minute. */
 const MIN_DELAY_MS = 60 * 1_000
@@ -37,10 +37,7 @@ const MAX_DELAY_MS = 2_147_483_647
  * monitorMemory(logger, 1)  // every hour
  * ```
  */
-export default function monitorMemory(
-    logger: Logger,
-    hours: number = 24,
-): void {
+export function monitorMemory(logger: Logger, hours: number = 24): void {
     const delay = 60 * 60 * 1_000 * hours
     if (
         !Number.isFinite(delay) ||

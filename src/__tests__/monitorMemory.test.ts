@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { afterEach, beforeEach, mock, suite, test } from "node:test"
 import type { Logger } from "@logtape/logtape"
-import monitorMemory from "../monitorMemory.ts"
+import { monitorMemory } from "../monitorMemory.ts"
 
 await suite("monitorMemory", () => {
     const logMock = mock.fn()

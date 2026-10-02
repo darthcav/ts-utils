@@ -1,7 +1,7 @@
 import { constants } from "node:os"
 import process, { env, execArgv, pid, title } from "node:process"
 import { dispose, type Logger } from "@logtape/logtape"
-import monitorMemory from "./monitorMemory.ts"
+import { monitorMemory } from "./monitorMemory.ts"
 
 /**
  * Upper bound for flushing log sinks before the process exits, so a hanging

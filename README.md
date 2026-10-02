@@ -260,7 +260,7 @@ src/
   index.ts          # Public API entry point
   main.ts           # Main module
   noop.ts           # No-op function
-  os-utils.ts       # OS release utilities
+  osRelease.ts      # OS release utilities
   loggers/          # Logger utilities
   __tests__/        # Test files
 dist/               # Compiled output (generated)

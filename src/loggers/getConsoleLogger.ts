@@ -57,7 +57,7 @@ function useColors(): boolean {
  * @param lowestLevel - The minimum log level to output. Defaults to `"info"`.
  * @returns A promise resolving to a logger scoped to the given category.
  */
-export default async function getConsoleLogger(
+export async function getConsoleLogger(
     name: string,
     lowestLevel: LogLevel = "info",
 ): Promise<Logger> {

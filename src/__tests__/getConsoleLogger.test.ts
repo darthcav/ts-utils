@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import process from "node:process"
 import { afterEach, beforeEach, mock, suite, test } from "node:test"
-import getConsoleLogger from "../loggers/getConsoleLogger.ts"
+import { getConsoleLogger } from "../loggers/getConsoleLogger.ts"
 
 await suite("getConsoleLogger", () => {
     test("returns a logger for the given category", async () => {

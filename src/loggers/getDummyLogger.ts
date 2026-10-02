@@ -30,7 +30,7 @@ const log = (..._args: readonly unknown[]): Promise<void> => settled
  * main("test-app", getDummyLogger())
  * ```
  */
-export default function getDummyLogger(): Logger {
+export function getDummyLogger(): Logger {
     const logger: Logger = {
         category: [],
         parent: null,

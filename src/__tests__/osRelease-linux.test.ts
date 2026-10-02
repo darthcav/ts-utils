@@ -25,7 +25,7 @@ mock.module("node:fs", {
     },
 })
 
-const { osRelease } = await import("../os-utils.ts")
+const { osRelease } = await import("../osRelease.ts")
 
 await suite("osRelease (linux platform)", async () => {
     test("returns null when no os-release file exists", () => {
