@@ -37,6 +37,11 @@ This release changes the behavior of `main`, `osRelease`, `asRuntimeObject`, and
 
 ### Fixed
 
+- `getConsoleLogger` no longer writes ANSI escape codes when its output is not a color terminal.
+  Colors are used only when both stdout and stderr are terminals that support them (respecting
+  `NO_COLOR`, `NODE_DISABLE_COLORS`, and `TERM=dumb`); otherwise the plain text formatter with the
+  same timestamp and level options is used. `FORCE_COLOR` overrides the detection (`0`/`false`
+  disable, any other value enables).
 - `main` now flushes and disposes the configured logtape sinks (for at most 3 seconds) before
   exiting on a signal, an uncaught exception, or an unhandled rejection. Previously it called
   `process.exit()` immediately, so buffered or asynchronous sinks (files, remote collectors) could

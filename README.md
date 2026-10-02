@@ -29,9 +29,14 @@ npm install @darthcav/ts-utils
 ### `getConsoleLogger`
 
 Configures logging and returns a `Logger` for the given category name. Records at or above
-`lowestLevel` are written to the console using an ANSI color formatter with RFC 3339 timestamps. The
-internal `logtape/meta` logger is silenced. The function is safe to call more than once — each call
-reconfigures logtape from scratch (the most recent call wins).
+`lowestLevel` are written to the console with RFC 3339 timestamps. The internal `logtape/meta`
+logger is silenced. The function is safe to call more than once — each call reconfigures logtape
+from scratch (the most recent call wins).
+
+ANSI colors are used only when both stdout and stderr are terminals that support them (respecting
+`NO_COLOR`, `NODE_DISABLE_COLORS`, and `TERM=dumb`), so logs redirected to files or pipes stay free
+of escape codes. Set `FORCE_COLOR` to override: `0` or `false` disables colors, any other value
+enables them.
 
 ```ts
 import { getConsoleLogger, main } from "@darthcav/ts-utils"
