@@ -61,11 +61,14 @@ This release changes the signature and behavior of `main`, `osRelease`, `asRunti
   `src/os-utils.ts` is renamed to `src/osRelease.ts` so single-function modules are named after
   their function. The public API is unchanged: the package only exposes its root entry point, whose
   named exports are now pinned by a test.
+- CI runs the tests on Windows and macOS as well as Linux. The `test` scripts quote their glob with
+  double quotes so they also work under `cmd.exe`, and a `.gitattributes` file keeps LF line endings
+  on every platform.
 - `@logtape/logtape` updated from 2.3.0 to 2.3.10.
 - `@biomejs/biome` (2.5.7 → 2.5.15), `@types/node` (26.2.0 → 26.6.4), and `prettier` (3.9.6 → 3.9.9)
   dev dependencies updated.
 - `CLAUDE.md` documents the `main`/`dev` branching strategy, the release process, and the release
-  gates in `publish.yml`.
+  gates in `publish.yml`, and no longer refers to the nonexistent `TODO.md` and `docs/`.
 
 ### Fixed
 

@@ -58,8 +58,11 @@
 - **Check coverage** — ensure test coverage does not decrease and critical paths are covered.
 - **Run lint** — ensure code style is consistent and no lint errors are introduced.
 - **Update documentation** — if the change adds, removes, or modifies user-visible features, update
-  `README.md` (feature descriptions, route table, env vars) and any relevant guides in `docs/`
-  before merging. Also update `TODO.md` to mark completed items.
+  `README.md` (feature descriptions, usage examples, project structure) and add an entry under
+  `[Unreleased]` in `CHANGELOG.md` before merging.
+- **Keep it cross-platform** — CI runs the tests on Linux, Windows, and macOS. In `package.json`
+  scripts, quote globs with escaped double quotes (`\"src/**/*.test.ts\"`, not single quotes, which
+  `cmd.exe` passes through literally), and use `shx` instead of POSIX-only commands.
 
 ## Stack
 
