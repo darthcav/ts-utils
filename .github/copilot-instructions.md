@@ -83,8 +83,9 @@
   `true`, but it always installs `uncaughtException` and `unhandledRejection` handlers. Preserve
   that behavior unless a deliberate API change is intended.
 - `monitorMemory()` logs memory figures in raw bytes and formats uptime via
-  `millisecondsToString()`. Keep the logger message format stable unless tests and documentation are
-  updated together.
+  `millisecondsToString()`, attaching the figures as structured properties as well. It unreferences
+  its timer and returns a stop function. Keep the rendered message text and property names stable
+  unless tests and documentation are updated together.
 - `getConsoleLogger()` configures LogTape globally and explicitly silences the `logtape/meta`
   logger. Be careful not to introduce duplicate or conflicting global logger configuration.
 - `getDummyLogger()` is synchronous and returns a `Logger`; its single no-op logging method

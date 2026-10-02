@@ -62,14 +62,21 @@ Starts a periodic interval that logs process uptime and memory usage (in bytes) 
 must be between one minute (`1 / 60`) and about 596.5 hours (2³¹ − 1 ms, the longest delay
 `setInterval` supports); anything outside that range throws a `RangeError`.
 
+It returns a function that stops the monitoring. The timer is unreferenced, so monitoring alone does
+not keep the process alive. Besides the human-readable message, each report attaches its figures as
+structured properties (`uptime` and `uptimeMs`; `rss`, `heapTotal`, `heapUsed`, and `external`), so
+sinks that keep properties, such as JSON Lines, can query them.
+
 ```ts
 import { getConsoleLogger, main, monitorMemory } from "@darthcav/ts-utils"
 
 const logger = await getConsoleLogger("my-app")
 
 main("my-app", logger, () => {
-    monitorMemory(logger)      // every 24 hours
-    monitorMemory(logger, 1)   // every hour
+    monitorMemory(logger)                  // every 24 hours
+    const stop = monitorMemory(logger, 1)  // every hour
+    // later, e.g. during shutdown:
+    stop()
 })
 ```
 

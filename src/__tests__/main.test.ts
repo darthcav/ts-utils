@@ -13,7 +13,9 @@ await suite("main", () => {
     const onMock = mock.fn()
     const onceMock = mock.fn()
     const exitMock = mock.fn()
-    const setIntervalMock = mock.fn()
+    const setIntervalMock = mock.fn((_fn: () => void, _delay: number) => ({
+        unref: () => {},
+    }))
     const killMock = mock.fn()
     const offMock = mock.fn()
     let otherSignalListeners = 0

@@ -12,18 +12,23 @@ await suite("monitorMemory", () => {
     const logger = { getChild: getChildMock } as unknown as Logger
 
     let setIntervalMock: ReturnType<typeof mock.method>
+    let clearIntervalMock: ReturnType<typeof mock.method>
+    const unrefMock = mock.fn()
+    const timer = { unref: unrefMock }
 
     beforeEach(() => {
         logMock.mock.resetCalls()
         getChildMock.mock.resetCalls()
+        unrefMock.mock.resetCalls()
         setIntervalMock = mock.method(
             globalThis,
             "setInterval",
             (fn: () => void, _delay: number) => {
                 fn()
-                return 0
+                return timer
             },
         )
+        clearIntervalMock = mock.method(globalThis, "clearInterval", () => {})
     })
 
     afterEach(() => {
@@ -48,6 +53,54 @@ await suite("monitorMemory", () => {
         const messages = logMock.mock.calls.map((c) => String(c.arguments[0]))
         assert.match(messages[0] ?? "", /Process uptime:/)
         assert.match(messages[1] ?? "", /Process memory/)
+    })
+
+    test("attaches the figures as structured properties", () => {
+        monitorMemory(logger)
+        const [uptimeCall, memoryCall] = logMock.mock.calls
+        const uptimeProps = uptimeCall?.arguments[1] as Record<string, unknown>
+        assert.equal(typeof uptimeProps["uptime"], "string")
+        assert.ok(Number.isInteger(uptimeProps["uptimeMs"]))
+        assert.equal(
+            uptimeCall?.arguments[0],
+            `Process uptime: ${uptimeProps["uptime"]}`,
+        )
+        assert.ok(!String(uptimeCall?.arguments[0]).includes("{"))
+
+        assert.match(
+            String(memoryCall?.arguments[0]),
+            /^Process memory - Resident set size: \{rss\} \| Heap total: \{heapTotal\} \| Heap used: \{heapUsed\} \| External: \{external\}$/,
+        )
+        const memoryProps = memoryCall?.arguments[1] as Record<string, unknown>
+        assert.deepEqual(Object.keys(memoryProps).sort(), [
+            "external",
+            "heapTotal",
+            "heapUsed",
+            "rss",
+        ])
+        for (const value of Object.values(memoryProps)) {
+            assert.equal(typeof value, "number")
+        }
+    })
+
+    test("unreferences the timer so it does not keep the process alive", () => {
+        monitorMemory(logger)
+        assert.equal(unrefMock.mock.callCount(), 1)
+    })
+
+    test("returns a function that clears the interval", () => {
+        const stop = monitorMemory(logger)
+        assert.equal(typeof stop, "function")
+        assert.equal(clearIntervalMock.mock.callCount(), 0)
+        stop()
+        assert.equal(clearIntervalMock.mock.callCount(), 1)
+        assert.equal(clearIntervalMock.mock.calls[0]?.arguments[0], timer)
+    })
+
+    test("stopping more than once is harmless", () => {
+        const stop = monitorMemory(logger)
+        stop()
+        assert.doesNotThrow(stop)
     })
 
     test("logs through a 'monitorMemory' child of the given logger", () => {
@@ -93,5 +146,38 @@ await suite("monitorMemory", () => {
         assert.equal(delays.length, 2)
         assert.ok(Math.abs((delays[0] as number) - 60_000) < 1e-6)
         assert.ok((delays[1] as number) <= 2_147_483_647)
+    })
+})
+
+await suite("monitorMemory (real timers)", () => {
+    test("the timer is unreferenced and stops reporting once stopped", async () => {
+        const logMock = mock.fn()
+        const childLogger = { info: logMock } as unknown as Logger
+        const logger = { getChild: () => childLogger } as unknown as Logger
+        const realSetInterval = globalThis.setInterval
+        let captured: ReturnType<typeof setInterval> | undefined
+        mock.method(
+            globalThis,
+            "setInterval",
+            (fn: () => void, _delay: number) => {
+                // Same callback, but fire quickly so the test does not wait a minute.
+                captured = realSetInterval(fn, 5)
+                return captured
+            },
+        )
+        try {
+            const stop = monitorMemory(logger, 1 / 60)
+            assert.ok(captured)
+            assert.equal(captured.hasRef(), false)
+
+            await new Promise((resolve) => setTimeout(resolve, 30))
+            assert.ok(logMock.mock.callCount() >= 2)
+            stop()
+            const calls = logMock.mock.callCount()
+            await new Promise((resolve) => setTimeout(resolve, 30))
+            assert.equal(logMock.mock.callCount(), calls)
+        } finally {
+            mock.restoreAll()
+        }
     })
 })

@@ -14,11 +14,19 @@ This release changes the behavior of `main`, `osRelease`, `asRuntimeObject`, and
 
 ### Added
 
+- `monitorMemory` returns a function that stops the monitoring (calling it more than once is
+  harmless).
+- `monitorMemory` reports attach their figures as structured properties: `uptime` (formatted) and
+  `uptimeMs` on the uptime record; `rss`, `heapTotal`, `heapUsed`, and `external` on the memory
+  record. The rendered message text is unchanged.
 - `isRuntimeObject` and `isString` type guards, the predicate counterparts of `asRuntimeObject` and
   `asString` (which now delegate to them, so both always agree).
 
 ### Changed
 
+- **Breaking:** the `monitorMemory` interval timer is now unreferenced, so monitoring alone no
+  longer keeps the process alive. A process whose only remaining work is the monitoring interval now
+  exits instead of running forever.
 - **Breaking:** on `SIGINT`/`SIGTERM`, `main` no longer exits with status `0`. After flushing the
   logs it re-raises the signal, so the process ends as killed by it (exit status 130/143 in a
   shell), which is what shells and supervisors such as systemd expect for a clean stop. If another
