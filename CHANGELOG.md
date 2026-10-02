@@ -7,6 +7,19 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-10-02
+
+This release changes the behavior of `main`, `osRelease`, `asRuntimeObject`, and
+`toRuntimeObjectArray`; entries marked **Breaking** may need attention when upgrading.
+
+### Changed
+
+- `@logtape/logtape` updated from 2.3.0 to 2.3.10.
+- `@biomejs/biome` (2.5.7 → 2.5.15), `@types/node` (26.2.0 → 26.6.4), and `prettier` (3.9.6 → 3.9.9)
+  dev dependencies updated.
+- `CLAUDE.md` documents the `main`/`dev` branching strategy, the release process, and the release
+  gates in `publish.yml`.
+
 ### Fixed
 
 - `monitorMemory` now rejects intervals longer than 2³¹ − 1 ms (about 596.5 hours) or shorter than
@@ -15,11 +28,29 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   with a report every millisecond.
 - `osRelease` no longer throws when `/etc/os-release` exists but cannot be read (e.g. `EACCES`); it
   returns `null` instead, as documented. It now falls back to `/usr/lib/os-release`, skips comment
-  lines, unquotes single-quoted values and backslash escapes inside double quotes, and leaves
-  unbalanced quotes untouched instead of stripping a single quote character.
+  lines, and unquotes single-quoted values and backslash escapes inside double quotes. **Breaking:**
+  a value with an unbalanced quote is now kept as-is instead of having that single quote character
+  stripped.
+- The `sync-dev.yml` workflow no longer reports real `gh pr create` failures (e.g. Actions lacking
+  permission to open PRs) as "nothing to sync"; only the "no commits between" case is a no-op.
+- The `sync-dev.yml` workflow merges the `main` → `dev` sync PR right after opening it instead of
+  relying on `gh pr merge --auto`, which needs branch protection on `dev` and otherwise left the PR
+  open forever.
 
 ### Security
 
+- **Breaking:** `main` now logs the Node.js process options (`execArgv` and `NODE_OPTIONS`) at
+  `debug` instead of `info` level, since they can reveal sensitive flags such as `--inspect=0.0.0.0`
+  or `--require` paths. Configure the logger with `lowestLevel: "debug"` to keep seeing them.
+- **Breaking:** `osRelease` only accepts upper-case shell variable names as os-release keys and
+  parses into a null-prototype record, so keys such as `__proto__` or `constructor` (and any
+  lower-case keys) are skipped.
+- **Breaking:** `asRuntimeObject` (and therefore `toRuntimeObjectArray`) now accepts only plain
+  objects: object literals, `JSON.parse` results, and null-prototype objects, including those from
+  other realms. Class instances and built-ins such as `Date`, `Map`, `Set`, `RegExp`, or module
+  namespace objects now yield `undefined`. Previously any non-array object was accepted, contrary to
+  the documented "runtime JSON object" contract. The docs now also warn that own
+  `__proto__`/`constructor` keys are not sanitized.
 - `npm ci` runs with `--ignore-scripts` in CI, so dependency install scripts never run (in
   particular not in jobs holding an OIDC token).
 - Checkouts use `persist-credentials: false`; `tests.yml` now sets `contents: read` explicitly, and
@@ -28,17 +59,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   matches the `package.json` version and is on `main`, then runs lint, typecheck, and tests. The
   `publish` job runs in an `npm` environment (for required-reviewer approval), skips the npm cache,
   and publishes with `--ignore-scripts` after an explicit build.
-- `main` now logs the Node.js process options (`execArgv` and `NODE_OPTIONS`) at `debug` instead of
-  `info` level, since they can reveal sensitive flags such as `--inspect=0.0.0.0` or `--require`
-  paths. Configure the logger with `lowestLevel: "debug"` to keep seeing them.
-- `osRelease` only accepts upper-case shell variable names as os-release keys and parses into a
-  null-prototype record, so keys such as `__proto__` or `constructor` are skipped.
-- `asRuntimeObject` (and therefore `toRuntimeObjectArray`) now accepts only plain objects: object
-  literals, `JSON.parse` results, and null-prototype objects, including those from other realms.
-  Class instances and built-ins such as `Date`, `Map`, `Set`, `RegExp`, or module namespace objects
-  now yield `undefined`. Previously any non-array object was accepted, contrary to the documented
-  "runtime JSON object" contract. The docs now also warn that own `__proto__`/`constructor` keys are
-  not sanitized.
 
 ## [0.10.10] - 2026-08-10
 
