@@ -119,6 +119,7 @@ export type MainOptions = {
  *   by this call and stops the memory monitoring, allowing `main` to be called
  *   again (e.g. in tests). It does not exit the process; calling it more than
  *   once is harmless.
+ * @throws {TypeError} If `options` is not an object.
  * @throws {Error} If another `main` call is still active.
  * @throws {RangeError} If `monitorMemoryHours` or `flushTimeoutMs` is out of
  *   range. Nothing is registered in that case.
@@ -155,67 +156,23 @@ export function main(
     name: string,
     logger: Logger,
     options?: MainOptions,
-): () => void
-/** @deprecated Use `main(name, logger, { launcher })` instead. */
-export function main(
-    name: string,
-    logger: Logger,
-    launcher: LauncherFunction,
-): () => void
-/** @deprecated Use `main(name, logger, { monitorMemoryHours })` instead. */
-export function main(
-    name: string,
-    logger: Logger,
-    monitorMemoryHours: number,
-): () => void
-/** @deprecated Use `main(name, logger, { defaultInterruptionHandler })` instead. */
-export function main(
-    name: string,
-    logger: Logger,
-    defaultInterruptionHandler: boolean,
-): () => void
-/** @deprecated Use `main(name, logger, { launcher, monitorMemoryHours })` instead. */
-export function main(
-    name: string,
-    logger: Logger,
-    launcher: LauncherFunction,
-    monitorMemoryHours: number,
-): () => void
-/** @deprecated Use `main(name, logger, { launcher, defaultInterruptionHandler })` instead. */
-export function main(
-    name: string,
-    logger: Logger,
-    launcher: LauncherFunction,
-    defaultInterruptionHandler: boolean,
-): () => void
-/** @deprecated Use `main(name, logger, { monitorMemoryHours, defaultInterruptionHandler })` instead. */
-export function main(
-    name: string,
-    logger: Logger,
-    monitorMemoryHours: number,
-    defaultInterruptionHandler: boolean,
-): () => void
-/** @deprecated Use `main(name, logger, { launcher, monitorMemoryHours, defaultInterruptionHandler })` instead. */
-export function main(
-    name: string,
-    logger: Logger,
-    launcher: LauncherFunction,
-    monitorMemoryHours: number,
-    defaultInterruptionHandler: boolean,
-): () => void
-export function main(
-    name: string,
-    logger: Logger,
-    arg3?: MainOptions | LauncherFunction | number | boolean,
-    arg4?: number | boolean,
-    arg5?: boolean,
 ): () => void {
+    // Rejects the positional arguments removed in 0.11.0 (e.g. a launcher
+    // function) from untyped callers, instead of silently ignoring them.
+    if (
+        options !== undefined &&
+        (typeof options !== "object" || options === null)
+    ) {
+        throw new TypeError(
+            `main: "options" must be a MainOptions object, received ${options === null ? "null" : typeof options}`,
+        )
+    }
     const {
         launcher,
         monitorMemoryHours = 0,
         defaultInterruptionHandler = true,
         flushTimeoutMs = DEFAULT_FLUSH_TIMEOUT_MS,
-    } = resolveOptions(arg3, arg4, arg5)
+    } = options ?? {}
 
     if (
         !Number.isFinite(flushTimeoutMs) ||
@@ -331,38 +288,4 @@ export function main(
     }
 
     return teardown
-}
-
-/**
- * Maps the options object, or the deprecated positional arguments (resolved
- * by runtime type), to {@link MainOptions}.
- */
-function resolveOptions(
-    arg3: MainOptions | LauncherFunction | number | boolean | undefined,
-    arg4: number | boolean | undefined,
-    arg5: boolean | undefined,
-): MainOptions {
-    if (typeof arg3 === "object" && arg3 !== null) {
-        return arg3
-    }
-    const options: MainOptions = {}
-    if (typeof arg3 === "function") {
-        options.launcher = arg3
-        if (typeof arg4 === "number") {
-            options.monitorMemoryHours = arg4
-            if (typeof arg5 === "boolean") {
-                options.defaultInterruptionHandler = arg5
-            }
-        } else if (typeof arg4 === "boolean") {
-            options.defaultInterruptionHandler = arg4
-        }
-    } else if (typeof arg3 === "number") {
-        options.monitorMemoryHours = arg3
-        if (typeof arg4 === "boolean") {
-            options.defaultInterruptionHandler = arg4
-        }
-    } else if (typeof arg3 === "boolean") {
-        options.defaultInterruptionHandler = arg3
-    }
-    return options
 }

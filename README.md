@@ -260,9 +260,8 @@ process.once("SIGTERM", async () => {
 })
 ```
 
-The positional forms of earlier versions — any ordered subset of `launcher`, `monitorMemoryHours`,
-and `defaultInterruptionHandler`, e.g. `main("my-app", logger, () => startServer(), 2, false)` —
-still work but are deprecated.
+The positional forms of earlier versions (e.g. `main("my-app", logger, () => startServer(), 2)`)
+were removed in 0.11.0; passing anything other than an options object throws a `TypeError`.
 
 For the full API reference see the [API Documentation][pages-url].
 

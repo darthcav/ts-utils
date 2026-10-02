@@ -178,7 +178,9 @@ await suite("main", () => {
     })
 
     test("should not register SIGINT or SIGTERM handlers when defaultInterruptionHandler is false", () => {
-        teardowns.push(main("test-app", logger, false))
+        teardowns.push(
+            main("test-app", logger, { defaultInterruptionHandler: false }),
+        )
 
         const sigintCall = onMock.mock.calls.find(
             (c) => c.arguments[0] === "SIGINT",
@@ -359,7 +361,7 @@ await suite("main", () => {
 
     test("should invoke the launcher function when provided", () => {
         const launcher = mock.fn()
-        teardowns.push(main("test-app", logger, launcher))
+        teardowns.push(main("test-app", logger, { launcher }))
         assert.equal(launcher.mock.callCount(), 1)
         assert.equal(launcher.mock.calls[0]?.arguments.length, 0)
     })
@@ -428,77 +430,20 @@ await suite("main", () => {
         assert.equal(exitMock.mock.calls[0]?.arguments[0], 1)
     })
 
-    // Deprecated positional forms: monitorMemoryHours combinations
+    // Memory monitoring
 
     test("should not start memory monitoring when monitorMemoryHours is 0 (default)", () => {
         teardowns.push(main("test-app", logger))
         assert.equal(setIntervalMock.mock.callCount(), 0)
     })
 
-    test("should start memory monitoring with only monitorMemoryHours", () => {
-        teardowns.push(main("test-app", logger, 2))
+    test("should start memory monitoring every monitorMemoryHours hours", () => {
+        teardowns.push(main("test-app", logger, { monitorMemoryHours: 2 }))
         assert.equal(setIntervalMock.mock.callCount(), 1)
         assert.equal(
             setIntervalMock.mock.calls[0]?.arguments[1],
             2 * 60 * 60 * 1_000,
         )
-    })
-
-    test("should start memory monitoring with launcher and monitorMemoryHours", () => {
-        teardowns.push(main("test-app", logger, mock.fn(), 2))
-        assert.equal(setIntervalMock.mock.callCount(), 1)
-        assert.equal(
-            setIntervalMock.mock.calls[0]?.arguments[1],
-            2 * 60 * 60 * 1_000,
-        )
-    })
-
-    test("should start memory monitoring with monitorMemoryHours and defaultInterruptionHandler", () => {
-        teardowns.push(main("test-app", logger, 3, false))
-        assert.equal(setIntervalMock.mock.callCount(), 1)
-        assert.equal(
-            setIntervalMock.mock.calls[0]?.arguments[1],
-            3 * 60 * 60 * 1_000,
-        )
-        assert.equal(
-            onMock.mock.calls.find((c) => c.arguments[0] === "SIGINT"),
-            undefined,
-        )
-    })
-
-    test("should start memory monitoring with all three optional parameters", () => {
-        const launcher = mock.fn()
-        teardowns.push(main("test-app", logger, launcher, 4, true))
-        assert.equal(setIntervalMock.mock.callCount(), 1)
-        assert.equal(
-            setIntervalMock.mock.calls[0]?.arguments[1],
-            4 * 60 * 60 * 1_000,
-        )
-        assert.equal(launcher.mock.callCount(), 1)
-    })
-
-    // Deprecated positional forms: defaultInterruptionHandler combinations
-
-    test("should disable interruption handler with only defaultInterruptionHandler=false", () => {
-        teardowns.push(main("test-app", logger, false))
-        assert.equal(
-            onMock.mock.calls.find((c) => c.arguments[0] === "SIGINT"),
-            undefined,
-        )
-        assert.equal(
-            onMock.mock.calls.find((c) => c.arguments[0] === "SIGTERM"),
-            undefined,
-        )
-    })
-
-    test("should disable interruption handler with launcher and defaultInterruptionHandler=false", () => {
-        const launcher = mock.fn()
-        teardowns.push(main("test-app", logger, launcher, false))
-        assert.equal(
-            onMock.mock.calls.find((c) => c.arguments[0] === "SIGINT"),
-            undefined,
-        )
-        assert.equal(launcher.mock.callCount(), 1)
     })
 
     // Options object
@@ -533,32 +478,24 @@ await suite("main", () => {
         ])
     })
 
-    test("the options object and the deprecated positional form behave alike", () => {
-        const launcher = mock.fn()
-        const positional = main("test-app", logger, launcher, 3, false)
-        const positionalEvents = onMock.mock.calls.map((c) => c.arguments[0])
-        const positionalDelay = setIntervalMock.mock.calls[0]?.arguments[1]
-        positional()
-        onMock.mock.resetCalls()
-        setIntervalMock.mock.resetCalls()
-
-        teardowns.push(
-            main("test-app", logger, {
-                launcher,
-                monitorMemoryHours: 3,
-                defaultInterruptionHandler: false,
-            }),
-        )
-        assert.deepEqual(
-            onMock.mock.calls.map((c) => c.arguments[0]),
-            positionalEvents,
-        )
-        assert.equal(
-            setIntervalMock.mock.calls[0]?.arguments[1],
-            positionalDelay,
-        )
-        assert.equal(launcher.mock.callCount(), 2)
-    })
+    // Untyped callers still using the positional forms removed in 0.11.0.
+    for (const [label, legacy] of [
+        ["a launcher function", () => {}],
+        ["a monitorMemoryHours number", 2],
+        ["a defaultInterruptionHandler boolean", false],
+        ["null", null],
+    ] as const) {
+        test(`rejects ${label} instead of an options object`, () => {
+            assert.throws(
+                () =>
+                    main("test-app", logger, legacy as unknown as MainOptions),
+                TypeError,
+            )
+            assert.equal(onMock.mock.callCount(), 0)
+            assert.equal(logMock.mock.callCount(), 0)
+            teardowns.push(main("test-app", logger))
+        })
+    }
 
     for (const flushTimeoutMs of [
         -1,

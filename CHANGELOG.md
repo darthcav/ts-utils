@@ -9,7 +9,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [0.11.0] - 2026-10-02
 
-This release changes the behavior of `main`, `osRelease`, `asRuntimeObject`, and
+This release changes the signature and behavior of `main`, `osRelease`, `asRuntimeObject`, and
 `toRuntimeObjectArray`; entries marked **Breaking** may need attention when upgrading.
 
 ### Added
@@ -33,9 +33,12 @@ This release changes the behavior of `main`, `osRelease`, `asRuntimeObject`, and
 
 ### Changed
 
-- The positional forms of `main`
+- **Breaking:** the positional forms of `main`
   (`main(name, logger, launcher?, monitorMemoryHours?, defaultInterruptionHandler?)` and their
-  subsets) are deprecated in favor of the options object. They keep working unchanged.
+  subsets) are removed in favor of the options object. Migrate e.g.
+  `main(name, logger, launcher, 2, false)` to
+  `main(name, logger, { launcher, monitorMemoryHours: 2, defaultInterruptionHandler: false })`. A
+  non-object third argument now throws a `TypeError`.
 - **Breaking:** `main` throws if called again while a previous call is still active (i.e. before its
   teardown runs), instead of registering a second set of process handlers.
 - **Breaking:** if the launcher throws or its promise rejects, `main` logs the failure and exits

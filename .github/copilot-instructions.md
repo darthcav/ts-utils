@@ -75,11 +75,9 @@
 - All modules use named exports only; Biome's `noDefaultExport` rule enforces this. Name
   single-function modules after their function in camelCase (e.g. `src/osRelease.ts`), and re-export
   new public utilities from `src/index.ts` (`src/__tests__/index.test.ts` pins the public API).
-- `main()` takes its optional settings as a `MainOptions` object. The positional forms
-  (`LauncherFunction | number | boolean`, resolved by runtime type in `resolveOptions`) are
-  deprecated but still supported: add new settings to `MainOptions` only, and keep the deprecated
-  overloads and their coverage in `src/__tests__/main.test.ts` until they are removed in a major
-  release.
+- `main()` takes its optional settings as a single `MainOptions` object; add new settings there
+  rather than as extra parameters. The positional forms were removed in 0.11.0, and a non-object
+  `options` argument throws a `TypeError` so untyped callers fail loudly.
 - Only one `main()` call can be active at a time; it throws until the returned teardown runs. Tests
   that call `main()` must run its teardown (e.g. in `afterEach`) before the next call.
 - `main()` installs `SIGINT` and `SIGTERM` handlers only when `defaultInterruptionHandler` is
