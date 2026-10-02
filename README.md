@@ -43,9 +43,11 @@ import { getConsoleLogger, main } from "@darthcav/ts-utils"
 
 const logger = await getConsoleLogger("my-app")
 
-main("my-app", logger, () => {
-    logger.info(`Application is running`)
-    // start servers, connect to databases, etc.
+main("my-app", logger, {
+    launcher: () => {
+        logger.info(`Application is running`)
+        // start servers, connect to databases, etc.
+    },
 })
 ```
 
@@ -72,11 +74,13 @@ import { getConsoleLogger, main, monitorMemory } from "@darthcav/ts-utils"
 
 const logger = await getConsoleLogger("my-app")
 
-main("my-app", logger, () => {
-    monitorMemory(logger)                  // every 24 hours
-    const stop = monitorMemory(logger, 1)  // every hour
-    // later, e.g. during shutdown:
-    stop()
+main("my-app", logger, {
+    launcher: () => {
+        monitorMemory(logger)                  // every 24 hours
+        const stop = monitorMemory(logger, 1)  // every hour
+        // later, e.g. during shutdown:
+        stop()
+    },
 })
 ```
 
@@ -199,25 +203,36 @@ const logger = getDummyLogger()
 ### `main`
 
 Bootstraps an application process: logs startup information, optionally registers handlers for
-`SIGINT` and `SIGTERM` (controlled by `defaultInterruptionHandler`, defaults to `true`), always
-registers handlers for `uncaughtException` and `unhandledRejection`, then delegates to an optional
-launcher function.
+`SIGINT` and `SIGTERM`, always registers handlers for `uncaughtException` and `unhandledRejection`,
+optionally starts memory monitoring, then runs an optional launcher function.
 
 The process title, PID, name, and `NODE_ENV` are logged at `info` level. The Node.js process options
 (`execArgv` and `NODE_OPTIONS`) are logged at `debug` level only, since they can reveal sensitive
 flags such as `--inspect=0.0.0.0`.
 
-Before exiting, `main` flushes and disposes the configured logtape sinks (for at most 3 seconds), so
-buffered or asynchronous sinks keep the final messages. On `SIGINT`/`SIGTERM` it logs the signal at
-`info` level and then re-raises it, so the process ends as killed by that signal (exit status
-130/143), which shells and supervisors such as systemd treat as a clean stop. Uncaught exceptions
-and unhandled rejections exit with status `1`. A second signal or error during the flush exits
-immediately.
+Before exiting, `main` flushes and disposes the configured logtape sinks (for at most
+`flushTimeoutMs`, 3 seconds by default), so buffered or asynchronous sinks keep the final messages.
+On `SIGINT`/`SIGTERM` it logs the signal at `info` level and then re-raises it, so the process ends
+as killed by that signal (exit status 130/143), which shells and supervisors such as systemd treat
+as a clean stop. Uncaught exceptions, unhandled rejections, and launcher failures exit with status
+`1`. A second signal or error during the flush exits immediately.
 
-The three optional parameters — `launcher` (function), `monitorMemoryHours` (number, defaults to
-`0`), and `defaultInterruptionHandler` (boolean, defaults to `true`) — have distinct types. Any
-subset can be passed in order and the function resolves each by type, so middle parameters can be
-omitted:
+Optional settings are passed as a `MainOptions` object:
+
+| Option                       | Type                          | Default | Description                                                |
+| ---------------------------- | ----------------------------- | ------- | ---------------------------------------------------------- |
+| `launcher`                   | `() => void \| Promise<void>` | —       | Runs after the handlers are registered; may be async.      |
+| `monitorMemoryHours`         | `number`                      | `0`     | When greater than `0`, logs memory usage every N hours.    |
+| `defaultInterruptionHandler` | `boolean`                     | `true`  | Register the `SIGINT`/`SIGTERM` handlers.                  |
+| `flushTimeoutMs`             | `number`                      | `3000`  | Longest wait for the log sinks to flush (0 to 2³¹ − 1 ms). |
+
+An out-of-range `monitorMemoryHours` or `flushTimeoutMs` throws a `RangeError` before any handler is
+registered. If the launcher throws or its promise rejects, the failure is logged and the process
+exits with status `1`.
+
+`main` returns a teardown function that removes the handlers it registered and stops the memory
+monitoring (it does not exit the process). Only one `main` call can be active at a time: calling it
+again before the teardown throws, instead of registering a second set of handlers.
 
 ```ts
 import { getLogger } from "@logtape/logtape"
@@ -225,15 +240,29 @@ import { main } from "@darthcav/ts-utils"
 
 const logger = getLogger(["my-app"])
 
-main("my-app", logger)                            // all defaults
-main("my-app", logger, () => startServer())       // launcher only
-main("my-app", logger, 2)                         // monitor every 2h
-main("my-app", logger, false)                     // disable SIGINT/SIGTERM handler
-main("my-app", logger, () => startServer(), 2)    // launcher + monitor
-main("my-app", logger, () => startServer(), false)// launcher + no handler
-main("my-app", logger, 2, false)                  // monitor + no handler
-main("my-app", logger, () => startServer(), 2, false) // all three
+main("my-app", logger)                                   // all defaults
+main("my-app", logger, {
+    launcher: async () => {
+        await connectToDatabase()
+        startServer()
+    },
+    monitorMemoryHours: 2,                               // log memory every 2 hours
+})
+
+// Manage graceful shutdown in the application instead:
+const teardown = main("my-app", logger, {
+    launcher: () => startServer(),
+    defaultInterruptionHandler: false,
+})
+process.once("SIGTERM", async () => {
+    await server.close()
+    teardown()
+})
 ```
+
+The positional forms of earlier versions — any ordered subset of `launcher`, `monitorMemoryHours`,
+and `defaultInterruptionHandler`, e.g. `main("my-app", logger, () => startServer(), 2, false)` —
+still work but are deprecated.
 
 For the full API reference see the [API Documentation][pages-url].
 

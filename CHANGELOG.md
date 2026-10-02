@@ -14,6 +14,15 @@ This release changes the behavior of `main`, `osRelease`, `asRuntimeObject`, and
 
 ### Added
 
+- `main` accepts its optional settings as a `MainOptions` object
+  (`main(name, logger, { launcher, monitorMemoryHours, defaultInterruptionHandler, flushTimeoutMs })`),
+  exported as a type.
+- `main` returns a teardown function that removes the process handlers it registered and stops the
+  memory monitoring it started, so `main` can be called again (e.g. in tests). Calling it more than
+  once is harmless.
+- `main` accepts an async launcher (`LauncherFunction` is now `() => void | Promise<void>`).
+- The `flushTimeoutMs` option makes the log flush timeout on shutdown configurable (default 3000 ms;
+  out-of-range values throw a `RangeError`).
 - `monitorMemory` returns a function that stops the monitoring (calling it more than once is
   harmless).
 - `monitorMemory` reports attach their figures as structured properties: `uptime` (formatted) and
@@ -24,6 +33,14 @@ This release changes the behavior of `main`, `osRelease`, `asRuntimeObject`, and
 
 ### Changed
 
+- The positional forms of `main`
+  (`main(name, logger, launcher?, monitorMemoryHours?, defaultInterruptionHandler?)` and their
+  subsets) are deprecated in favor of the options object. They keep working unchanged.
+- **Breaking:** `main` throws if called again while a previous call is still active (i.e. before its
+  teardown runs), instead of registering a second set of process handlers.
+- **Breaking:** if the launcher throws or its promise rejects, `main` logs the failure and exits
+  with status `1` after flushing the logs, instead of letting a synchronous error propagate to the
+  caller.
 - **Breaking:** the `monitorMemory` interval timer is now unreferenced, so monitoring alone no
   longer keeps the process alive. A process whose only remaining work is the monitoring interval now
   exits instead of running forever.
@@ -49,6 +66,8 @@ This release changes the behavior of `main`, `osRelease`, `asRuntimeObject`, and
 
 ### Fixed
 
+- `main` now starts memory monitoring (which validates `monitorMemoryHours`) before registering any
+  process handler, so an invalid value throws a `RangeError` with nothing left registered.
 - `getConsoleLogger` no longer writes ANSI escape codes when its output is not a color terminal.
   Colors are used only when both stdout and stderr are terminals that support them (respecting
   `NO_COLOR`, `NODE_DISABLE_COLORS`, and `TERM=dumb`); otherwise the plain text formatter with the

@@ -33,6 +33,10 @@ await suite("main (log flushing on shutdown)", () => {
         return call.arguments[1] as (...args: unknown[]) => Promise<void>
     }
 
+    // Teardown functions returned by main(), run after each test so the next
+    // test can call main() again.
+    const teardowns: (() => void)[] = []
+
     beforeEach(() => {
         disposeImpl = () => Promise.resolve()
         disposeMock.mock.resetCalls()
@@ -47,6 +51,9 @@ await suite("main (log flushing on shutdown)", () => {
     })
 
     afterEach(() => {
+        for (const teardown of teardowns.splice(0)) {
+            teardown()
+        }
         mock.timers.reset()
         mock.restoreAll()
     })
@@ -68,7 +75,7 @@ await suite("main (log flushing on shutdown)", () => {
         test(`flushes logs before exiting on ${event}`, async () => {
             const { promise, resolve } = Promise.withResolvers<void>()
             disposeImpl = () => promise
-            main("test-app", logger)
+            teardowns.push(main("test-app", logger))
 
             const pending = handlerFor(event)(...args)
             await new Promise(setImmediate)
@@ -83,7 +90,7 @@ await suite("main (log flushing on shutdown)", () => {
 
     test("still exits when disposing the sinks fails", async () => {
         disposeImpl = () => Promise.reject(new Error("sink failed"))
-        main("test-app", logger)
+        teardowns.push(main("test-app", logger))
 
         await handlerFor("uncaughtException")(new Error("boom"), "origin")
         assert.equal(exitMock.mock.callCount(), 1)
@@ -93,7 +100,7 @@ await suite("main (log flushing on shutdown)", () => {
     test("gives up on a hanging flush after 3 seconds", async () => {
         mock.timers.enable({ apis: ["setTimeout"] })
         disposeImpl = () => new Promise<void>(() => {})
-        main("test-app", logger)
+        teardowns.push(main("test-app", logger))
 
         const pending = handlerFor("unhandledRejection")(new Error("boom"))
         mock.timers.tick(2_999)
@@ -109,7 +116,7 @@ await suite("main (log flushing on shutdown)", () => {
     test("a second event during the flush exits immediately", async () => {
         mock.timers.enable({ apis: ["setTimeout"] })
         disposeImpl = () => new Promise<void>(() => {})
-        main("test-app", logger)
+        teardowns.push(main("test-app", logger))
 
         const first = handlerFor("SIGTERM")()
         await handlerFor("SIGINT")()
@@ -124,5 +131,34 @@ await suite("main (log flushing on shutdown)", () => {
         mock.timers.tick(3_000)
         await first
         assert.equal(killMock.mock.callCount(), 2)
+    })
+
+    test("honors a custom flushTimeoutMs", async () => {
+        mock.timers.enable({ apis: ["setTimeout"] })
+        disposeImpl = () => new Promise<void>(() => {})
+        teardowns.push(main("test-app", logger, { flushTimeoutMs: 500 }))
+
+        const pending = handlerFor("uncaughtException")(
+            new Error("boom"),
+            "uncaughtException",
+        )
+        mock.timers.tick(499)
+        await new Promise(setImmediate)
+        assert.equal(exitMock.mock.callCount(), 0)
+
+        mock.timers.tick(1)
+        await pending
+        assert.equal(exitMock.mock.callCount(), 1)
+    })
+
+    test("a zero flushTimeoutMs does not wait for a hanging flush", async () => {
+        mock.timers.enable({ apis: ["setTimeout"] })
+        disposeImpl = () => new Promise<void>(() => {})
+        teardowns.push(main("test-app", logger, { flushTimeoutMs: 0 }))
+
+        const pending = handlerFor("unhandledRejection")(new Error("boom"))
+        mock.timers.tick(0)
+        await pending
+        assert.equal(exitMock.mock.callCount(), 1)
     })
 })

@@ -29,7 +29,7 @@
   compiled to `dist/`, and the package export map only exposes the root entrypoint. `src/index.ts`
   is the public API surface and re-exports the supported utilities and types.
 - The public API currently includes:
-    - `main` and `LauncherFunction`
+    - `main`, `MainOptions`, and `LauncherFunction`
     - `monitorMemory`
     - `getConsoleLogger`
     - `getDummyLogger`
@@ -40,8 +40,8 @@
       `RuntimeObject`
 - The library is organized as small leaf modules plus one orchestration module:
     - `src/main.ts` is the central process-bootstrap utility. It logs startup state, registers
-      lifecycle and fatal error handlers, optionally starts memory monitoring, and then invokes an
-      optional launcher callback.
+      lifecycle and fatal error handlers, optionally starts memory monitoring, invokes an optional
+      (possibly async) launcher callback, and returns a teardown function.
     - `src/monitorMemory.ts` emits periodic uptime and memory statistics using
       `process.memoryUsage()` and `millisecondsToString()`.
     - `src/loggers/getConsoleLogger.ts` wraps `@logtape/logtape`, configures logging globally, and
@@ -75,10 +75,13 @@
 - All modules use named exports only; Biome's `noDefaultExport` rule enforces this. Name
   single-function modules after their function in camelCase (e.g. `src/osRelease.ts`), and re-export
   new public utilities from `src/index.ts` (`src/__tests__/index.test.ts` pins the public API).
-- If you change `main()`, update all three surfaces together: overload signatures, runtime argument
-  resolution, and tests. Its optional arguments are intentionally resolved by runtime type
-  (`LauncherFunction | number | boolean`), and the overload coverage in `src/__tests__/main.test.ts`
-  is the safety net.
+- `main()` takes its optional settings as a `MainOptions` object. The positional forms
+  (`LauncherFunction | number | boolean`, resolved by runtime type in `resolveOptions`) are
+  deprecated but still supported: add new settings to `MainOptions` only, and keep the deprecated
+  overloads and their coverage in `src/__tests__/main.test.ts` until they are removed in a major
+  release.
+- Only one `main()` call can be active at a time; it throws until the returned teardown runs. Tests
+  that call `main()` must run its teardown (e.g. in `afterEach`) before the next call.
 - `main()` installs `SIGINT` and `SIGTERM` handlers only when `defaultInterruptionHandler` is
   `true`, but it always installs `uncaughtException` and `unhandledRejection` handlers. Preserve
   that behavior unless a deliberate API change is intended.

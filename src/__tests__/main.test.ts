@@ -3,10 +3,23 @@ import process from "node:process"
 import { afterEach, beforeEach, mock, suite, test } from "node:test"
 import type { Logger } from "@logtape/logtape"
 import type { Assert, Equal } from "asserttt"
-import { type LauncherFunction, main } from "../main.ts"
+import { type LauncherFunction, type MainOptions, main } from "../main.ts"
 
-type _LauncherFunctionShape = Assert<Equal<LauncherFunction, () => void>>
-type _MainReturnType = Assert<Equal<ReturnType<typeof main>, void>>
+type _LauncherFunctionShape = Assert<
+    Equal<LauncherFunction, () => void | Promise<void>>
+>
+type _MainReturnType = Assert<Equal<ReturnType<typeof main>, () => void>>
+type _MainOptionsShape = Assert<
+    Equal<
+        MainOptions,
+        {
+            launcher?: LauncherFunction
+            monitorMemoryHours?: number
+            defaultInterruptionHandler?: boolean
+            flushTimeoutMs?: number
+        }
+    >
+>
 
 await suite("main", () => {
     const logMock = mock.fn()
@@ -70,12 +83,26 @@ await suite("main", () => {
         mock.method(globalThis, "setInterval", setIntervalMock)
     })
 
+    // Teardown functions returned by main(), run after each test so the next
+    // test can call main() again.
+    const teardowns: (() => void)[] = []
+
+    /** Lets the asynchronous log flush and exit path run. */
+    const settle = async (): Promise<void> => {
+        for (let i = 0; i < 10; i++) {
+            await new Promise(setImmediate)
+        }
+    }
+
     afterEach(() => {
+        for (const teardown of teardowns.splice(0)) {
+            teardown()
+        }
         mock.restoreAll()
     })
 
     test("should log startup information", () => {
-        main("test-app", logger)
+        teardowns.push(main("test-app", logger))
 
         const messages = logMock.mock.calls.map(render)
         assert.ok(messages.some((m) => /Main process launched/.test(m)))
@@ -87,7 +114,7 @@ await suite("main", () => {
         const savedOptions = process.env["NODE_OPTIONS"]
         process.env["NODE_OPTIONS"] = "--inspect=0.0.0.0:9229"
         try {
-            main("test-app", logger)
+            teardowns.push(main("test-app", logger))
             const infoMessages = logMock.mock.calls.map(render)
             assert.ok(
                 !infoMessages.some((m) => /process options|--inspect/.test(m)),
@@ -115,7 +142,7 @@ await suite("main", () => {
         delete process.env["NODE_ENV"]
         delete process.env["NODE_OPTIONS"]
         try {
-            main("test-app", logger)
+            teardowns.push(main("test-app", logger))
             const messages = logMock.mock.calls.map(render)
             assert.ok(messages.some((m) => /Node\.js environment: $/.test(m)))
             const debugMessages = debugMock.mock.calls.map(render)
@@ -133,7 +160,7 @@ await suite("main", () => {
     })
 
     test("should register SIGINT handler", () => {
-        main("test-app", logger)
+        teardowns.push(main("test-app", logger))
 
         const sigintCall = onMock.mock.calls.find(
             (c) => c.arguments[0] === "SIGINT",
@@ -142,7 +169,7 @@ await suite("main", () => {
     })
 
     test("should register SIGTERM handler", () => {
-        main("test-app", logger)
+        teardowns.push(main("test-app", logger))
 
         const sigtermCall = onMock.mock.calls.find(
             (c) => c.arguments[0] === "SIGTERM",
@@ -151,7 +178,7 @@ await suite("main", () => {
     })
 
     test("should not register SIGINT or SIGTERM handlers when defaultInterruptionHandler is false", () => {
-        main("test-app", logger, false)
+        teardowns.push(main("test-app", logger, false))
 
         const sigintCall = onMock.mock.calls.find(
             (c) => c.arguments[0] === "SIGINT",
@@ -172,7 +199,7 @@ await suite("main", () => {
     })
 
     test("should register uncaughtException handler", () => {
-        main("test-app", logger)
+        teardowns.push(main("test-app", logger))
 
         const call = onMock.mock.calls.find(
             (c) => c.arguments[0] === "uncaughtException",
@@ -181,7 +208,7 @@ await suite("main", () => {
     })
 
     test("should register unhandledRejection handler", () => {
-        main("test-app", logger)
+        teardowns.push(main("test-app", logger))
 
         const call = onMock.mock.calls.find(
             (c) => c.arguments[0] === "unhandledRejection",
@@ -200,7 +227,7 @@ await suite("main", () => {
         ["SIGTERM", 143],
     ] as const) {
         test(`should log ${signal} at info level and re-raise it`, async () => {
-            main("test-app", logger)
+            teardowns.push(main("test-app", logger))
             const handler = signalHandler(signal)
             await handler()
 
@@ -223,7 +250,7 @@ await suite("main", () => {
 
         test(`should exit with status ${status} on ${signal} when other listeners exist`, async () => {
             otherSignalListeners = 1
-            main("test-app", logger)
+            teardowns.push(main("test-app", logger))
             await signalHandler(signal)()
 
             assert.equal(killMock.mock.callCount(), 0)
@@ -233,7 +260,7 @@ await suite("main", () => {
     }
 
     test("should exit on uncaughtException with an Error and log its stack", async () => {
-        main("test-app", logger)
+        teardowns.push(main("test-app", logger))
 
         const call = onMock.mock.calls.find(
             (c) => c.arguments[0] === "uncaughtException",
@@ -258,7 +285,7 @@ await suite("main", () => {
     })
 
     test("logs errors via a tagged template so brace characters are preserved verbatim", async () => {
-        main("test-app", logger)
+        teardowns.push(main("test-app", logger))
 
         const call = onMock.mock.calls.find(
             (c) => c.arguments[0] === "uncaughtException",
@@ -291,7 +318,7 @@ await suite("main", () => {
     })
 
     test("should exit on uncaughtException with an Error and no stack", async () => {
-        main("test-app", logger)
+        teardowns.push(main("test-app", logger))
 
         const call = onMock.mock.calls.find(
             (c) => c.arguments[0] === "uncaughtException",
@@ -312,7 +339,7 @@ await suite("main", () => {
     })
 
     test("should exit on uncaughtException with a non-Error value", async () => {
-        main("test-app", logger)
+        teardowns.push(main("test-app", logger))
 
         const call = onMock.mock.calls.find(
             (c) => c.arguments[0] === "uncaughtException",
@@ -332,13 +359,13 @@ await suite("main", () => {
 
     test("should invoke the launcher function when provided", () => {
         const launcher = mock.fn()
-        main("test-app", logger, launcher)
+        teardowns.push(main("test-app", logger, launcher))
         assert.equal(launcher.mock.callCount(), 1)
         assert.equal(launcher.mock.calls[0]?.arguments.length, 0)
     })
 
     test("should exit on unhandledRejection with an Error reason and no stack", async () => {
-        main("test-app", logger)
+        teardowns.push(main("test-app", logger))
 
         const call = onMock.mock.calls.find(
             (c) => c.arguments[0] === "unhandledRejection",
@@ -361,7 +388,7 @@ await suite("main", () => {
     })
 
     test("should exit on unhandledRejection with a non-Error reason", async () => {
-        main("test-app", logger)
+        teardowns.push(main("test-app", logger))
 
         const call = onMock.mock.calls.find(
             (c) => c.arguments[0] === "unhandledRejection",
@@ -380,7 +407,7 @@ await suite("main", () => {
     })
 
     test("should exit on unhandledRejection with an Error reason and log its stack", async () => {
-        main("test-app", logger)
+        teardowns.push(main("test-app", logger))
 
         const call = onMock.mock.calls.find(
             (c) => c.arguments[0] === "unhandledRejection",
@@ -401,15 +428,15 @@ await suite("main", () => {
         assert.equal(exitMock.mock.calls[0]?.arguments[0], 1)
     })
 
-    // monitorMemoryHours overload combinations
+    // Deprecated positional forms: monitorMemoryHours combinations
 
     test("should not start memory monitoring when monitorMemoryHours is 0 (default)", () => {
-        main("test-app", logger)
+        teardowns.push(main("test-app", logger))
         assert.equal(setIntervalMock.mock.callCount(), 0)
     })
 
     test("should start memory monitoring with only monitorMemoryHours", () => {
-        main("test-app", logger, 2)
+        teardowns.push(main("test-app", logger, 2))
         assert.equal(setIntervalMock.mock.callCount(), 1)
         assert.equal(
             setIntervalMock.mock.calls[0]?.arguments[1],
@@ -418,7 +445,7 @@ await suite("main", () => {
     })
 
     test("should start memory monitoring with launcher and monitorMemoryHours", () => {
-        main("test-app", logger, mock.fn(), 2)
+        teardowns.push(main("test-app", logger, mock.fn(), 2))
         assert.equal(setIntervalMock.mock.callCount(), 1)
         assert.equal(
             setIntervalMock.mock.calls[0]?.arguments[1],
@@ -427,7 +454,7 @@ await suite("main", () => {
     })
 
     test("should start memory monitoring with monitorMemoryHours and defaultInterruptionHandler", () => {
-        main("test-app", logger, 3, false)
+        teardowns.push(main("test-app", logger, 3, false))
         assert.equal(setIntervalMock.mock.callCount(), 1)
         assert.equal(
             setIntervalMock.mock.calls[0]?.arguments[1],
@@ -441,7 +468,7 @@ await suite("main", () => {
 
     test("should start memory monitoring with all three optional parameters", () => {
         const launcher = mock.fn()
-        main("test-app", logger, launcher, 4, true)
+        teardowns.push(main("test-app", logger, launcher, 4, true))
         assert.equal(setIntervalMock.mock.callCount(), 1)
         assert.equal(
             setIntervalMock.mock.calls[0]?.arguments[1],
@@ -450,10 +477,10 @@ await suite("main", () => {
         assert.equal(launcher.mock.callCount(), 1)
     })
 
-    // defaultInterruptionHandler overload combinations
+    // Deprecated positional forms: defaultInterruptionHandler combinations
 
     test("should disable interruption handler with only defaultInterruptionHandler=false", () => {
-        main("test-app", logger, false)
+        teardowns.push(main("test-app", logger, false))
         assert.equal(
             onMock.mock.calls.find((c) => c.arguments[0] === "SIGINT"),
             undefined,
@@ -466,11 +493,202 @@ await suite("main", () => {
 
     test("should disable interruption handler with launcher and defaultInterruptionHandler=false", () => {
         const launcher = mock.fn()
-        main("test-app", logger, launcher, false)
+        teardowns.push(main("test-app", logger, launcher, false))
         assert.equal(
             onMock.mock.calls.find((c) => c.arguments[0] === "SIGINT"),
             undefined,
         )
         assert.equal(launcher.mock.callCount(), 1)
+    })
+
+    // Options object
+
+    test("accepts an options object", () => {
+        const launcher = mock.fn()
+        teardowns.push(
+            main("test-app", logger, {
+                launcher,
+                monitorMemoryHours: 2,
+                defaultInterruptionHandler: false,
+            }),
+        )
+        assert.equal(launcher.mock.callCount(), 1)
+        assert.equal(
+            setIntervalMock.mock.calls[0]?.arguments[1],
+            2 * 60 * 60 * 1_000,
+        )
+        const events = onMock.mock.calls.map((c) => c.arguments[0])
+        assert.deepEqual(events, ["uncaughtException", "unhandledRejection"])
+    })
+
+    test("applies the defaults for an empty options object", () => {
+        teardowns.push(main("test-app", logger, {}))
+        assert.equal(setIntervalMock.mock.callCount(), 0)
+        const events = onMock.mock.calls.map((c) => c.arguments[0])
+        assert.deepEqual(events, [
+            "SIGINT",
+            "SIGTERM",
+            "uncaughtException",
+            "unhandledRejection",
+        ])
+    })
+
+    test("the options object and the deprecated positional form behave alike", () => {
+        const launcher = mock.fn()
+        const positional = main("test-app", logger, launcher, 3, false)
+        const positionalEvents = onMock.mock.calls.map((c) => c.arguments[0])
+        const positionalDelay = setIntervalMock.mock.calls[0]?.arguments[1]
+        positional()
+        onMock.mock.resetCalls()
+        setIntervalMock.mock.resetCalls()
+
+        teardowns.push(
+            main("test-app", logger, {
+                launcher,
+                monitorMemoryHours: 3,
+                defaultInterruptionHandler: false,
+            }),
+        )
+        assert.deepEqual(
+            onMock.mock.calls.map((c) => c.arguments[0]),
+            positionalEvents,
+        )
+        assert.equal(
+            setIntervalMock.mock.calls[0]?.arguments[1],
+            positionalDelay,
+        )
+        assert.equal(launcher.mock.callCount(), 2)
+    })
+
+    for (const flushTimeoutMs of [
+        -1,
+        Number.NaN,
+        Number.POSITIVE_INFINITY,
+        2_147_483_648,
+    ]) {
+        test(`rejects flushTimeoutMs=${flushTimeoutMs} before registering anything`, () => {
+            assert.throws(
+                () => main("test-app", logger, { flushTimeoutMs }),
+                RangeError,
+            )
+            assert.equal(onMock.mock.callCount(), 0)
+            assert.equal(logMock.mock.callCount(), 0)
+            // Not left active: a valid call still works.
+            teardowns.push(main("test-app", logger))
+        })
+    }
+
+    test("rejects invalid monitorMemoryHours before registering any handler", () => {
+        assert.throws(
+            () => main("test-app", logger, { monitorMemoryHours: 1_000 }),
+            RangeError,
+        )
+        assert.equal(onMock.mock.callCount(), 0)
+        teardowns.push(main("test-app", logger))
+    })
+
+    // Lifecycle
+
+    test("throws when called again while a previous call is active", () => {
+        teardowns.push(main("test-app", logger))
+        const registered = onMock.mock.callCount()
+        assert.throws(() => main("test-app", logger), /already active/)
+        assert.equal(onMock.mock.callCount(), registered)
+    })
+
+    test("can be called again after the teardown", () => {
+        const teardown = main("test-app", logger)
+        teardown()
+        teardowns.push(main("test-app", logger))
+    })
+
+    test("the teardown removes every registered handler and stops monitoring", () => {
+        const clearIntervalMock = mock.method(
+            globalThis,
+            "clearInterval",
+            () => {},
+        )
+        const teardown = main("test-app", logger, { monitorMemoryHours: 1 })
+        const registered = onMock.mock.calls.map((c) => c.arguments)
+        assert.equal(registered.length, 4)
+
+        teardown()
+        const removed = offMock.mock.calls.map((c) => c.arguments)
+        assert.deepEqual(removed, registered)
+        assert.equal(clearIntervalMock.mock.callCount(), 1)
+        assert.equal(
+            clearIntervalMock.mock.calls[0]?.arguments[0],
+            setIntervalMock.mock.calls[0]?.result,
+        )
+    })
+
+    test("calling the teardown more than once is harmless", () => {
+        const teardown = main("test-app", logger)
+        teardown()
+        const removed = offMock.mock.callCount()
+        teardown()
+        assert.equal(offMock.mock.callCount(), removed)
+        // A second teardown must not deactivate a newer main() call.
+        teardowns.push(main("test-app", logger))
+        teardown()
+        assert.throws(() => main("test-app", logger), /already active/)
+    })
+
+    test("the teardown does not exit the process", () => {
+        main("test-app", logger)()
+        assert.equal(exitMock.mock.callCount(), 0)
+        assert.equal(killMock.mock.callCount(), 0)
+    })
+
+    // Launchers
+
+    test("runs an async launcher without waiting or exiting", async () => {
+        const { promise, resolve } = Promise.withResolvers<void>()
+        const launcher = mock.fn(() => promise)
+        teardowns.push(main("test-app", logger, { launcher }))
+        assert.equal(launcher.mock.callCount(), 1)
+        resolve()
+        await settle()
+        assert.equal(exitMock.mock.callCount(), 0)
+    })
+
+    test("logs a rejected async launcher and exits with status 1", async () => {
+        const error = new Error("startup failed")
+        teardowns.push(
+            main("test-app", logger, {
+                launcher: () => Promise.reject(error),
+            }),
+        )
+        await settle()
+        assert.ok(
+            logMock.mock.calls.some(
+                (c) =>
+                    /Launcher failed:/.test(render(c)) &&
+                    render(c).includes(error.stack ?? error.message),
+            ),
+        )
+        assert.equal(exitMock.mock.callCount(), 1)
+        assert.equal(exitMock.mock.calls[0]?.arguments[0], 1)
+    })
+
+    test("logs a throwing launcher and exits with status 1 instead of throwing", async () => {
+        let teardown: (() => void) | undefined
+        assert.doesNotThrow(() => {
+            teardown = main("test-app", logger, {
+                launcher: () => {
+                    throw new Error("sync failure")
+                },
+            })
+        })
+        assert.ok(teardown)
+        teardowns.push(teardown)
+        await settle()
+        assert.ok(
+            logMock.mock.calls.some((c) =>
+                /Launcher failed: Error: sync failure/.test(render(c)),
+            ),
+        )
+        assert.equal(exitMock.mock.callCount(), 1)
+        assert.equal(exitMock.mock.calls[0]?.arguments[0], 1)
     })
 })
