@@ -64,6 +64,8 @@ This release changes the signature and behavior of `main`, `osRelease`, `asRunti
 - CI runs the tests on Windows and macOS as well as Linux. The `test` scripts quote their glob with
   double quotes so they also work under `cmd.exe`, and a `.gitattributes` file keeps LF line endings
   on every platform.
+- The `test` scripts load `.env.local` with `--env-file-if-exists`, so the file is optional and the
+  tests no longer fail when it is missing. CI no longer copies `.env.example` to `.env.local`.
 - `@logtape/logtape` updated from 2.3.0 to 2.3.10.
 - `@biomejs/biome` (2.5.7 → 2.5.15), `@types/node` (26.2.0 → 26.6.4), and `prettier` (3.9.6 → 3.9.9)
   dev dependencies updated.

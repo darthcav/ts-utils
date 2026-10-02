@@ -16,12 +16,12 @@
 - Full suite: `npm test`
 - Coverage: `npm run test:coverage`
 - LCOV coverage output: `npm run test:coverage:lcov`
-- The test runner expects `.env.local`; if it is missing, copy `.env.example` first:
-  `cp .env.example .env.local`
+- The test runner loads `.env.local` when it exists (`--env-file-if-exists`); it is optional, and
+  `.env.example` shows the supported variables.
 - Run a single test file with the same flags used by the repo:
-  `node --env-file=.env.local --experimental-test-module-mocks --test --test-reporter=spec src/__tests__/main.test.ts`
+  `node --env-file-if-exists=.env.local --experimental-test-module-mocks --test --test-reporter=spec src/__tests__/main.test.ts`
 - Run a single test by name:
-  `node --env-file=.env.local --experimental-test-module-mocks --test --test-name-pattern="should log startup information" src/__tests__/main.test.ts`
+  `node --env-file-if-exists=.env.local --experimental-test-module-mocks --test --test-name-pattern="should log startup information" src/__tests__/main.test.ts`
 
 ## High-level architecture
 
