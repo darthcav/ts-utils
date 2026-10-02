@@ -24,6 +24,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   matches the `package.json` version and is on `main`, then runs lint, typecheck, and tests. The
   `publish` job runs in an `npm` environment (for required-reviewer approval), skips the npm cache,
   and publishes with `--ignore-scripts` after an explicit build.
+- `main` now logs the Node.js process options (`execArgv` and `NODE_OPTIONS`) at `debug` instead of
+  `info` level, since they can reveal sensitive flags such as `--inspect=0.0.0.0` or `--require`
+  paths. Configure the logger with `lowestLevel: "debug"` to keep seeing them.
 
 ## [0.10.10] - 2026-08-10
 

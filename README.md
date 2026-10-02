@@ -154,6 +154,10 @@ Bootstraps an application process: logs startup information, optionally register
 registers handlers for `uncaughtException` and `unhandledRejection`, then delegates to an optional
 launcher function.
 
+The process title, PID, name, and `NODE_ENV` are logged at `info` level. The Node.js process options
+(`execArgv` and `NODE_OPTIONS`) are logged at `debug` level only, since they can reveal sensitive
+flags such as `--inspect=0.0.0.0`.
+
 The three optional parameters — `launcher` (function), `monitorMemoryHours` (number, defaults to
 `0`), and `defaultInterruptionHandler` (boolean, defaults to `true`) — have distinct types. Any
 subset can be passed in order and the function resolves each by type, so middle parameters can be

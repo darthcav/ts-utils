@@ -15,9 +15,11 @@ await suite("main", () => {
     const exitMock = mock.fn()
     const setIntervalMock = mock.fn()
 
+    const debugMock = mock.fn()
     const childLogger: Logger = {
         info: logMock,
         error: logMock,
+        debug: debugMock,
         getChild: () => childLogger,
     } as unknown as Logger
     const logger = { getChild: () => childLogger } as unknown as Logger
@@ -40,6 +42,7 @@ await suite("main", () => {
 
     beforeEach(() => {
         logMock.mock.resetCalls()
+        debugMock.mock.resetCalls()
         onMock.mock.resetCalls()
         onceMock.mock.resetCalls()
         exitMock.mock.resetCalls()
@@ -61,7 +64,32 @@ await suite("main", () => {
         assert.ok(messages.some((m) => /Main process launched/.test(m)))
         assert.ok(messages.some((m) => /Process name:/.test(m)))
         assert.ok(messages.some((m) => /Node\.js environment:/.test(m)))
-        assert.ok(messages.some((m) => /Node\.js process options:/.test(m)))
+    })
+
+    test("should log process options at debug level only", () => {
+        const savedOptions = process.env["NODE_OPTIONS"]
+        process.env["NODE_OPTIONS"] = "--inspect=0.0.0.0:9229"
+        try {
+            main("test-app", logger)
+            const infoMessages = logMock.mock.calls.map(render)
+            assert.ok(
+                !infoMessages.some((m) => /process options|--inspect/.test(m)),
+            )
+            const debugMessages = debugMock.mock.calls.map(render)
+            assert.ok(
+                debugMessages.some((m) =>
+                    /Node\.js process options:.*--inspect=0\.0\.0\.0:9229/.test(
+                        m,
+                    ),
+                ),
+            )
+        } finally {
+            if (savedOptions === undefined) {
+                delete process.env["NODE_OPTIONS"]
+            } else {
+                process.env["NODE_OPTIONS"] = savedOptions
+            }
+        }
     })
 
     test("should use empty fallbacks when NODE_ENV and NODE_OPTIONS are not set", () => {
@@ -73,7 +101,10 @@ await suite("main", () => {
             main("test-app", logger)
             const messages = logMock.mock.calls.map(render)
             assert.ok(messages.some((m) => /Node\.js environment: $/.test(m)))
-            assert.ok(messages.some((m) => /Node\.js process options:/.test(m)))
+            const debugMessages = debugMock.mock.calls.map(render)
+            assert.ok(
+                debugMessages.some((m) => /Node\.js process options:/.test(m)),
+            )
         } finally {
             if (savedEnv !== undefined) {
                 process.env["NODE_ENV"] = savedEnv

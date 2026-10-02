@@ -14,6 +14,11 @@ export type LauncherFunction = () => void
  * handlers for `SIGINT`, `SIGTERM`, `uncaughtException`, and
  * `unhandledRejection`, then delegates to the optional launcher function.
  *
+ * The process title, PID, name, and `NODE_ENV` are logged at `info` level.
+ * The Node.js process options (`execArgv` and `NODE_OPTIONS`) are logged at
+ * `debug` level only, since they can reveal sensitive flags such as
+ * `--inspect=0.0.0.0` or `--require` paths.
+ *
  * The three optional parameters — `launcher`, `monitorMemoryHours`, and
  * `defaultInterruptionHandler` — have distinct types and can be supplied in
  * any subset and in that order, omitting whichever are not needed:
@@ -145,7 +150,9 @@ export function main(
     __logger.info`Main process launched [${title} :: ${pid}]`
     __logger.info`Process name: ${name}`
     __logger.info`Node.js environment: ${env["NODE_ENV"] ?? ""}`
-    __logger.info`Node.js process options: ${execArgv.concat(env["NODE_OPTIONS"] ?? []).join(" | ")}`
+    // Process options can reveal sensitive flags (e.g. `--inspect=0.0.0.0`
+    // or `--require` paths), so they are only logged at debug level.
+    __logger.debug`Node.js process options: ${execArgv.concat(env["NODE_OPTIONS"] ?? []).join(" | ")}`
 
     if (monitorMemoryHours > 0) {
         monitorMemory(__logger, monitorMemoryHours)
