@@ -114,22 +114,37 @@ const payload: RuntimeObject = {
 }
 ```
 
-### `asRuntimeObject`, `asString`, and `toRuntimeObjectArray`
+### Type guards and narrowing helpers
 
-Narrow `unknown` values (e.g. parsed JSON) without type assertions. `asRuntimeObject` returns the
-value only when it is a plain object (an object literal, a `JSON.parse` result, or an
-`Object.create(null)` object); arrays, class instances, and built-ins such as `Date` or `Map` yield
-`undefined`. `toRuntimeObjectArray` keeps only the plain-object elements of an array.
+Narrow `unknown` values (e.g. parsed JSON) without type assertions:
 
-Keys are not sanitized: an own `__proto__` or `constructor` key from untrusted JSON is kept, so
-guard against those keys before merging the result into other objects.
+- `isRuntimeObject` / `isString` are type guards for use in conditions.
+- `asRuntimeObject` / `asString` return the value, or `undefined` when it does not match, for use
+  with `?.` and `??`.
+- `toRuntimeObjectArray` keeps only the plain-object elements of an array.
+
+A runtime object is a plain object (an object literal, a `JSON.parse` result, or an
+`Object.create(null)` object); arrays, class instances, and built-ins such as `Date` or `Map` are
+rejected. Keys are not sanitized: an own `__proto__` or `constructor` key from untrusted JSON is
+kept, so guard against those keys before merging the value into other objects.
 
 ```ts
-import { asRuntimeObject, asString, toRuntimeObjectArray } from "@darthcav/ts-utils"
+import {
+    asRuntimeObject,
+    asString,
+    isRuntimeObject,
+    isString,
+    toRuntimeObjectArray,
+} from "@darthcav/ts-utils"
 
-const body = asRuntimeObject(JSON.parse(input))
-const name = asString(body?.["name"]) ?? "anonymous"
-const items = toRuntimeObjectArray(body?.["items"])
+const body: unknown = JSON.parse(input)
+
+if (isRuntimeObject(body) && isString(body["name"])) {
+    console.log(body["name"].toUpperCase()) // narrowed to string
+}
+
+const name = asString(asRuntimeObject(body)?.["name"]) ?? "anonymous"
+const items = toRuntimeObjectArray(asRuntimeObject(body)?.["items"])
 ```
 
 ### `osRelease`

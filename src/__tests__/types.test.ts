@@ -2,16 +2,25 @@ import assert from "node:assert/strict"
 import { suite, test } from "node:test"
 import { runInNewContext } from "node:vm"
 import type { Assert, Equal } from "asserttt"
-import type { RuntimeObject as PublicRuntimeObject } from "../index.ts"
+import {
+    type RuntimeObject as PublicRuntimeObject,
+    isRuntimeObject as publicIsRuntimeObject,
+    isString as publicIsString,
+} from "../index.ts"
 import {
     asRuntimeObject,
     asString,
+    isRuntimeObject,
+    isString,
     type RuntimeObject,
     toRuntimeObjectArray,
 } from "../types.ts"
 
 type _RuntimeObjectShape = Assert<Equal<RuntimeObject, Record<string, unknown>>>
 type _RuntimeObjectExport = Assert<Equal<PublicRuntimeObject, RuntimeObject>>
+type _ToRuntimeObjectArrayReturn = Assert<
+    Equal<ReturnType<typeof toRuntimeObjectArray>, RuntimeObject[]>
+>
 
 await suite("RuntimeObject", () => {
     test("accepts runtime-defined keys and unknown values", () => {
@@ -116,6 +125,106 @@ await suite("asRuntimeObject", () => {
             (Object.prototype as Record<string, unknown>)["polluted"],
             undefined,
         )
+    })
+})
+
+await suite("isRuntimeObject", () => {
+    class Point {
+        x = 1
+    }
+    const samples: unknown[] = [
+        { a: 1 },
+        Object.create(null),
+        JSON.parse('{"a":1}'),
+        runInNewContext("({ a: 1 })"),
+        [],
+        new Point(),
+        new Date(),
+        new Map(),
+        null,
+        undefined,
+        "text",
+        42,
+        () => {},
+    ]
+
+    test("is exported from the package entry point", () => {
+        assert.equal(publicIsRuntimeObject, isRuntimeObject)
+    })
+
+    test("returns true for plain objects", () => {
+        for (const value of samples.slice(0, 4)) {
+            assert.equal(isRuntimeObject(value), true)
+        }
+    })
+
+    test("returns false for everything else", () => {
+        for (const value of samples.slice(4)) {
+            assert.equal(isRuntimeObject(value), false)
+        }
+    })
+
+    test("agrees with asRuntimeObject", () => {
+        for (const value of samples) {
+            assert.equal(
+                isRuntimeObject(value),
+                asRuntimeObject(value) !== undefined,
+            )
+        }
+    })
+
+    test("narrows unknown to RuntimeObject", () => {
+        const value: unknown = { a: 1 }
+        if (isRuntimeObject(value)) {
+            type _Narrowed = Assert<Equal<typeof value, RuntimeObject>>
+            assert.equal(value["a"], 1)
+        } else {
+            assert.fail("expected a plain object")
+        }
+    })
+
+    test("narrows unions and leaves the other members in the else branch", () => {
+        const value = [1] as RuntimeObject | number[]
+        if (isRuntimeObject(value)) {
+            assert.fail("arrays are not runtime objects")
+        } else {
+            type _Rest = Assert<Equal<typeof value, number[]>>
+            assert.deepEqual(value, [1])
+        }
+    })
+})
+
+await suite("isString", () => {
+    test("is exported from the package entry point", () => {
+        assert.equal(publicIsString, isString)
+    })
+
+    test("returns true for strings", () => {
+        assert.equal(isString("hello"), true)
+        assert.equal(isString(""), true)
+    })
+
+    test("returns false for non-strings", () => {
+        for (const value of [
+            42,
+            null,
+            undefined,
+            {},
+            [],
+            new String("boxed"),
+        ]) {
+            assert.equal(isString(value), false)
+        }
+    })
+
+    test("narrows unknown to string", () => {
+        const value: unknown = "hello"
+        if (isString(value)) {
+            type _Narrowed = Assert<Equal<typeof value, string>>
+            assert.equal(value.toUpperCase(), "HELLO")
+        } else {
+            assert.fail("expected a string")
+        }
     })
 })
 

@@ -14,6 +14,8 @@ import { type OsRelease, osRelease } from "./os-utils.ts"
 import {
     asRuntimeObject,
     asString,
+    isRuntimeObject,
+    isString,
     type RuntimeObject,
     toRuntimeObjectArray,
 } from "./types.ts"
@@ -23,6 +25,8 @@ export {
     asString,
     getConsoleLogger,
     getDummyLogger,
+    isRuntimeObject,
+    isString,
     type LauncherFunction,
     main,
     millisecondsToString,

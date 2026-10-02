@@ -12,6 +12,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 This release changes the behavior of `main`, `osRelease`, `asRuntimeObject`, and
 `toRuntimeObjectArray`; entries marked **Breaking** may need attention when upgrading.
 
+### Added
+
+- `isRuntimeObject` and `isString` type guards, the predicate counterparts of `asRuntimeObject` and
+  `asString` (which now delegate to them, so both always agree).
+
 ### Changed
 
 - **Breaking:** on `SIGINT`/`SIGTERM`, `main` no longer exits with status `0`. After flushing the
