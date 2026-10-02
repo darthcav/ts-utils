@@ -179,6 +179,13 @@ The process title, PID, name, and `NODE_ENV` are logged at `info` level. The Nod
 (`execArgv` and `NODE_OPTIONS`) are logged at `debug` level only, since they can reveal sensitive
 flags such as `--inspect=0.0.0.0`.
 
+Before exiting, `main` flushes and disposes the configured logtape sinks (for at most 3 seconds), so
+buffered or asynchronous sinks keep the final messages. On `SIGINT`/`SIGTERM` it logs the signal at
+`info` level and then re-raises it, so the process ends as killed by that signal (exit status
+130/143), which shells and supervisors such as systemd treat as a clean stop. Uncaught exceptions
+and unhandled rejections exit with status `1`. A second signal or error during the flush exits
+immediately.
+
 The three optional parameters — `launcher` (function), `monitorMemoryHours` (number, defaults to
 `0`), and `defaultInterruptionHandler` (boolean, defaults to `true`) — have distinct types. Any
 subset can be passed in order and the function resolves each by type, so middle parameters can be

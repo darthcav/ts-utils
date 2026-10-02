@@ -14,6 +14,12 @@ This release changes the behavior of `main`, `osRelease`, `asRuntimeObject`, and
 
 ### Changed
 
+- **Breaking:** on `SIGINT`/`SIGTERM`, `main` no longer exits with status `0`. After flushing the
+  logs it re-raises the signal, so the process ends as killed by it (exit status 130/143 in a
+  shell), which is what shells and supervisors such as systemd expect for a clean stop. If another
+  listener for the signal is registered, it exits with status `128 + signal number` instead. The
+  signal is now logged at `info` instead of `error` level.
+
 - `@logtape/logtape` updated from 2.3.0 to 2.3.10.
 - `@biomejs/biome` (2.5.7 → 2.5.15), `@types/node` (26.2.0 → 26.6.4), and `prettier` (3.9.6 → 3.9.9)
   dev dependencies updated.
@@ -22,6 +28,11 @@ This release changes the behavior of `main`, `osRelease`, `asRuntimeObject`, and
 
 ### Fixed
 
+- `main` now flushes and disposes the configured logtape sinks (for at most 3 seconds) before
+  exiting on a signal, an uncaught exception, or an unhandled rejection. Previously it called
+  `process.exit()` immediately, so buffered or asynchronous sinks (files, remote collectors) could
+  lose the final messages, including the crash details. A second signal or error during the flush
+  exits immediately.
 - `monitorMemory` now rejects intervals longer than 2³¹ − 1 ms (about 596.5 hours) or shorter than
   one minute with a `RangeError`. Previously, Node.js silently replaced oversized delays with 1 ms,
   so a value such as `monitorMemory(logger, 1000)` (or `main(name, logger, 1000)`) flooded the logs

@@ -1,6 +1,34 @@
+import { constants } from "node:os"
 import process, { env, execArgv, pid, title } from "node:process"
-import type { Logger } from "@logtape/logtape"
+import { dispose, type Logger } from "@logtape/logtape"
 import monitorMemory from "./monitorMemory.ts"
+
+/**
+ * Upper bound for flushing log sinks before the process exits, so a hanging
+ * sink cannot block shutdown.
+ */
+const FLUSH_TIMEOUT_MS = 3_000
+
+/**
+ * Flushes and disposes the configured logtape sinks, giving up after
+ * {@link FLUSH_TIMEOUT_MS}. Never rejects: logging is best effort while the
+ * process is shutting down.
+ */
+async function flushLogs(): Promise<void> {
+    let timer: ReturnType<typeof setTimeout> | undefined
+    try {
+        await Promise.race([
+            dispose(),
+            new Promise<void>((resolve) => {
+                timer = setTimeout(resolve, FLUSH_TIMEOUT_MS)
+            }),
+        ])
+    } catch {
+        // Ignore sink errors: the process is exiting anyway.
+    } finally {
+        clearTimeout(timer)
+    }
+}
 
 /**
  * A function that performs the actual application launch after process
@@ -18,6 +46,16 @@ export type LauncherFunction = () => void
  * The Node.js process options (`execArgv` and `NODE_OPTIONS`) are logged at
  * `debug` level only, since they can reveal sensitive flags such as
  * `--inspect=0.0.0.0` or `--require` paths.
+ *
+ * Before the process exits, the configured logtape sinks are flushed and
+ * disposed (for at most 3 seconds), so buffered or asynchronous sinks do not
+ * lose the final messages. On `SIGINT`/`SIGTERM` the signal is logged at
+ * `info` level and then re-raised, so the process ends as killed by that
+ * signal (exit status 130/143), which shells and supervisors such as systemd
+ * treat as a clean stop. If another listener for that signal is registered,
+ * the process exits with status `128 + signal number` instead. Uncaught
+ * exceptions and unhandled rejections exit with status `1`. A second signal or
+ * error during the flush exits immediately.
  *
  * The three optional parameters — `launcher`, `monitorMemoryHours`, and
  * `defaultInterruptionHandler` — have distinct types and can be supplied in
@@ -158,24 +196,46 @@ export function main(
         monitorMemory(__logger, monitorMemoryHours)
     }
 
+    // Set once a shutdown starts: a second signal or error while the logs are
+    // being flushed exits immediately instead of waiting again.
+    let shuttingDown = false
+    const exitAfterFlush = async (exit: () => void): Promise<void> => {
+        if (!shuttingDown) {
+            shuttingDown = true
+            await flushLogs()
+        }
+        exit()
+    }
+
     if (defaultInterruptionHandler) {
         for (const signal of ["SIGINT", "SIGTERM"] as const) {
-            process.on(signal, (signal) => {
-                __logger.error`Process interrupted. Received signal: ${signal}`
-                process.exit(0)
-            })
+            const onSignal = (): Promise<void> => {
+                __logger.info`Process interrupted. Received signal: ${signal}`
+                return exitAfterFlush(() => {
+                    // Re-raise the signal with its default disposition so the
+                    // process ends as killed by it. Exit with the conventional
+                    // status instead if another listener would intercept it.
+                    process.off(signal, onSignal)
+                    if (process.listenerCount(signal) === 0) {
+                        process.kill(pid, signal)
+                    } else {
+                        process.exit(128 + constants.signals[signal])
+                    }
+                })
+            }
+            process.on(signal, onSignal)
         }
     }
 
     process.on("uncaughtException", (error, origin) => {
         __logger.error`Uncaught exception: ${error instanceof Error ? (error.stack ?? String(error)) : String(error)}`
         __logger.error`Exception origin: ${origin}`
-        process.exit(1)
+        return exitAfterFlush(() => process.exit(1))
     })
 
     process.on("unhandledRejection", (reason) => {
         __logger.error`Unhandled promise rejection. Reason:\n${reason instanceof Error ? (reason.stack ?? String(reason)) : String(reason)}`
-        process.exit(1)
+        return exitAfterFlush(() => process.exit(1))
     })
 
     launcher?.()

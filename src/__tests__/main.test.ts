@@ -14,10 +14,17 @@ await suite("main", () => {
     const onceMock = mock.fn()
     const exitMock = mock.fn()
     const setIntervalMock = mock.fn()
+    const killMock = mock.fn()
+    const offMock = mock.fn()
+    let otherSignalListeners = 0
+    const listenerCountMock = mock.fn(() => otherSignalListeners)
+    // Forwards to `logMock` so existing assertions see every message, while
+    // letting tests check which messages were logged at `info` level.
+    const infoMock = mock.fn((...args: unknown[]) => logMock(...args))
 
     const debugMock = mock.fn()
     const childLogger: Logger = {
-        info: logMock,
+        info: infoMock,
         error: logMock,
         debug: debugMock,
         getChild: () => childLogger,
@@ -47,7 +54,15 @@ await suite("main", () => {
         onceMock.mock.resetCalls()
         exitMock.mock.resetCalls()
         setIntervalMock.mock.resetCalls()
+        killMock.mock.resetCalls()
+        offMock.mock.resetCalls()
+        listenerCountMock.mock.resetCalls()
+        infoMock.mock.resetCalls()
+        otherSignalListeners = 0
         mock.method(process, "on", onMock)
+        mock.method(process, "off", offMock)
+        mock.method(process, "kill", killMock)
+        mock.method(process, "listenerCount", listenerCountMock)
         mock.method(process, "once", onceMock)
         mock.method(process, "exit", exitMock)
         mock.method(globalThis, "setInterval", setIntervalMock)
@@ -172,45 +187,50 @@ await suite("main", () => {
         assert.ok(call, "unhandledRejection handler not registered")
     })
 
-    test("should exit on SIGINT", () => {
-        main("test-app", logger)
+    const signalHandler = (signal: "SIGINT" | "SIGTERM") => {
+        const call = onMock.mock.calls.find((c) => c.arguments[0] === signal)
+        assert.ok(call, `${signal} handler not registered`)
+        return call.arguments[1] as () => Promise<void>
+    }
 
-        const sigintCall = onMock.mock.calls.find(
-            (c) => c.arguments[0] === "SIGINT",
-        )
-        assert.ok(sigintCall)
-        const handler = sigintCall.arguments[1]
-        handler("SIGINT")
+    for (const [signal, status] of [
+        ["SIGINT", 130],
+        ["SIGTERM", 143],
+    ] as const) {
+        test(`should log ${signal} at info level and re-raise it`, async () => {
+            main("test-app", logger)
+            const handler = signalHandler(signal)
+            await handler()
 
-        assert.ok(
-            logMock.mock.calls.some((c) =>
-                /Received signal: SIGINT/.test(render(c)),
-            ),
-        )
-        assert.equal(exitMock.mock.callCount(), 1)
-        assert.equal(exitMock.mock.calls[0]?.arguments[0], 0)
-    })
+            assert.ok(
+                infoMock.mock.calls.some((c) =>
+                    new RegExp(`Received signal: ${signal}`).test(render(c)),
+                ),
+            )
+            assert.deepEqual(offMock.mock.calls[0]?.arguments, [
+                signal,
+                handler,
+            ])
+            assert.equal(killMock.mock.callCount(), 1)
+            assert.deepEqual(killMock.mock.calls[0]?.arguments, [
+                process.pid,
+                signal,
+            ])
+            assert.equal(exitMock.mock.callCount(), 0)
+        })
 
-    test("should exit on SIGTERM", () => {
-        main("test-app", logger)
+        test(`should exit with status ${status} on ${signal} when other listeners exist`, async () => {
+            otherSignalListeners = 1
+            main("test-app", logger)
+            await signalHandler(signal)()
 
-        const sigtermCall = onMock.mock.calls.find(
-            (c) => c.arguments[0] === "SIGTERM",
-        )
-        assert.ok(sigtermCall)
-        const handler = sigtermCall.arguments[1]
-        handler("SIGTERM")
+            assert.equal(killMock.mock.callCount(), 0)
+            assert.equal(exitMock.mock.callCount(), 1)
+            assert.equal(exitMock.mock.calls[0]?.arguments[0], status)
+        })
+    }
 
-        assert.ok(
-            logMock.mock.calls.some((c) =>
-                /Received signal: SIGTERM/.test(render(c)),
-            ),
-        )
-        assert.equal(exitMock.mock.callCount(), 1)
-        assert.equal(exitMock.mock.calls[0]?.arguments[0], 0)
-    })
-
-    test("should exit on uncaughtException with an Error and log its stack", () => {
+    test("should exit on uncaughtException with an Error and log its stack", async () => {
         main("test-app", logger)
 
         const call = onMock.mock.calls.find(
@@ -219,7 +239,7 @@ await suite("main", () => {
         assert.ok(call)
         const handler = call.arguments[1]
         const error = new Error("test error")
-        handler(error, "unhandledException")
+        await handler(error, "unhandledException")
 
         assert.ok(
             logMock.mock.calls.some(
@@ -235,7 +255,7 @@ await suite("main", () => {
         assert.equal(exitMock.mock.calls[0]?.arguments[0], 1)
     })
 
-    test("logs errors via a tagged template so brace characters are preserved verbatim", () => {
+    test("logs errors via a tagged template so brace characters are preserved verbatim", async () => {
         main("test-app", logger)
 
         const call = onMock.mock.calls.find(
@@ -244,7 +264,7 @@ await suite("main", () => {
         assert.ok(call)
         const handler = call.arguments[1]
         const error = new Error('Unexpected token in JSON: {"key":"value"}')
-        handler(error, "uncaughtException")
+        await handler(error, "uncaughtException")
 
         // logtape parses '{...}' in a plain string argument as a placeholder and
         // replaces it with null. The tagged-template form passes the message
@@ -268,7 +288,7 @@ await suite("main", () => {
         )
     })
 
-    test("should exit on uncaughtException with an Error and no stack", () => {
+    test("should exit on uncaughtException with an Error and no stack", async () => {
         main("test-app", logger)
 
         const call = onMock.mock.calls.find(
@@ -278,7 +298,7 @@ await suite("main", () => {
         const handler = call.arguments[1]
         const error = new Error("test error")
         delete error.stack
-        handler(error, "unhandledException")
+        await handler(error, "unhandledException")
 
         assert.ok(
             logMock.mock.calls.some((c) =>
@@ -289,7 +309,7 @@ await suite("main", () => {
         assert.equal(exitMock.mock.calls[0]?.arguments[0], 1)
     })
 
-    test("should exit on uncaughtException with a non-Error value", () => {
+    test("should exit on uncaughtException with a non-Error value", async () => {
         main("test-app", logger)
 
         const call = onMock.mock.calls.find(
@@ -297,7 +317,7 @@ await suite("main", () => {
         )
         assert.ok(call)
         const handler = call.arguments[1]
-        handler("something went wrong", "unhandledException")
+        await handler("something went wrong", "unhandledException")
 
         assert.ok(
             logMock.mock.calls.some((c) =>
@@ -315,7 +335,7 @@ await suite("main", () => {
         assert.equal(launcher.mock.calls[0]?.arguments.length, 0)
     })
 
-    test("should exit on unhandledRejection with an Error reason and no stack", () => {
+    test("should exit on unhandledRejection with an Error reason and no stack", async () => {
         main("test-app", logger)
 
         const call = onMock.mock.calls.find(
@@ -325,7 +345,7 @@ await suite("main", () => {
         const handler = call.arguments[1]
         const error = new Error("rejection error")
         delete error.stack
-        handler(error)
+        await handler(error)
 
         assert.ok(
             logMock.mock.calls.some((c) =>
@@ -338,7 +358,7 @@ await suite("main", () => {
         assert.equal(exitMock.mock.calls[0]?.arguments[0], 1)
     })
 
-    test("should exit on unhandledRejection with a non-Error reason", () => {
+    test("should exit on unhandledRejection with a non-Error reason", async () => {
         main("test-app", logger)
 
         const call = onMock.mock.calls.find(
@@ -346,7 +366,7 @@ await suite("main", () => {
         )
         assert.ok(call)
         const handler = call.arguments[1]
-        handler("some reason")
+        await handler("some reason")
 
         assert.ok(
             logMock.mock.calls.some((c) =>
@@ -357,7 +377,7 @@ await suite("main", () => {
         assert.equal(exitMock.mock.calls[0]?.arguments[0], 1)
     })
 
-    test("should exit on unhandledRejection with an Error reason and log its stack", () => {
+    test("should exit on unhandledRejection with an Error reason and log its stack", async () => {
         main("test-app", logger)
 
         const call = onMock.mock.calls.find(
@@ -366,7 +386,7 @@ await suite("main", () => {
         assert.ok(call)
         const handler = call.arguments[1]
         const error = new Error("rejection error")
-        handler(error)
+        await handler(error)
 
         assert.ok(
             logMock.mock.calls.some(
