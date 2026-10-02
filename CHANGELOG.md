@@ -9,7 +9,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [0.11.0] - 2026-10-02
 
-This release changes the signature and behavior of `main`, `osRelease`, `asRuntimeObject`, and
+This release replaces the positional parameters of `main` with an options object and changes the
+behavior of `main`, `monitorMemory`, `getDummyLogger`, `osRelease`, `asRuntimeObject`, and
 `toRuntimeObjectArray`; entries marked **Breaking** may need attention when upgrading.
 
 ### Added
@@ -56,7 +57,6 @@ This release changes the signature and behavior of `main`, `osRelease`, `asRunti
   `await getDummyLogger()` keeps working, but code calling `.then()` on the result must drop it. It
   no longer needs `as unknown as` casts: every logging method is a single no-op that satisfies all
   logtape overloads, returning an already-settled promise for the async-properties ones.
-
 - All modules now use named exports only (enforced by Biome's `noDefaultExport` rule), and
   `src/os-utils.ts` is renamed to `src/osRelease.ts` so single-function modules are named after
   their function. The public API is unchanged: the package only exposes its root entry point, whose
