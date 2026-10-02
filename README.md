@@ -158,8 +158,9 @@ if (info) {
 
 ### `getDummyLogger`
 
-Returns a no-op `Logger` useful as a placeholder in tests. All logging methods are no-ops and
-`isEnabledFor` always returns `false`. `getChild` and `with` return the same dummy logger instance.
+Returns a no-op `Logger` (synchronously) useful as a placeholder in tests. All logging methods are
+no-ops and `isEnabledFor` always returns `false`. `getChild` and `with` return the same dummy logger
+instance. Each call returns a new instance, so mocking a method on one does not affect others.
 
 ```ts
 import { getDummyLogger } from "@darthcav/ts-utils"

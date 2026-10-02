@@ -19,6 +19,10 @@ This release changes the behavior of `main`, `osRelease`, `asRuntimeObject`, and
   shell), which is what shells and supervisors such as systemd expect for a clean stop. If another
   listener for the signal is registered, it exits with status `128 + signal number` instead. The
   signal is now logged at `info` instead of `error` level.
+- **Breaking:** `getDummyLogger` now returns the `Logger` directly instead of a `Promise<Logger>`.
+  `await getDummyLogger()` keeps working, but code calling `.then()` on the result must drop it. It
+  no longer needs `as unknown as` casts: every logging method is a single no-op that satisfies all
+  logtape overloads, returning an already-settled promise for the async-properties ones.
 
 - `@logtape/logtape` updated from 2.3.0 to 2.3.10.
 - `@biomejs/biome` (2.5.7 → 2.5.15), `@types/node` (26.2.0 → 26.6.4), and `prettier` (3.9.6 → 3.9.9)
