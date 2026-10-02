@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs"
+import { readFileSync } from "node:fs"
 import { arch, release as kernelRelease, platform } from "node:os"
 import type { RuntimeObject } from "./types.ts"
 
@@ -17,21 +17,93 @@ export type OsRelease = {
     arch: string
 } & RuntimeObject
 
-const OS_RELEASE = "/etc/os-release"
+/**
+ * Candidate os-release files, in lookup order. Per the freedesktop.org spec,
+ * `/etc/os-release` takes precedence and `/usr/lib/os-release` is the fallback.
+ */
+const OS_RELEASE_FILES = ["/etc/os-release", "/usr/lib/os-release"] as const
 
 /**
- * Returns OS release information for the current platform, or `null` on unsupported
- * platforms or when `/etc/os-release` is absent on Linux.
+ * Valid os-release keys: shell-compatible, upper-case variable names. This
+ * also rules out keys such as `__proto__` or `constructor`.
+ */
+const OS_RELEASE_KEY = /^[A-Z][A-Z0-9_]*$/
+
+/**
+ * Reads the first readable os-release file, or returns `null` when none can be
+ * read (missing, unreadable, or not a regular file).
+ */
+function readOsReleaseFile(): string | null {
+    for (const file of OS_RELEASE_FILES) {
+        try {
+            return readFileSync(file, "utf-8")
+        } catch {
+            // Try the next candidate.
+        }
+    }
+    return null
+}
+
+/**
+ * Removes one level of shell-style quoting from an os-release value. Double
+ * quotes allow the `\\`, `\"`, `` \` `` and `\$` escapes; single quotes are
+ * literal.
+ */
+function unquote(value: string): string {
+    if (value.length >= 2) {
+        const quote = value[0]
+        if (quote === '"' && value.endsWith('"')) {
+            return value.slice(1, -1).replace(/\\([\\"`$])/g, "$1")
+        }
+        if (quote === "'" && value.endsWith("'")) {
+            return value.slice(1, -1)
+        }
+    }
+    return value
+}
+
+/**
+ * Parses os-release content into a null-prototype record. Blank lines,
+ * comments, lines without `=`, and keys that are not valid variable names are
+ * skipped.
+ */
+function parseOsRelease(content: string): Record<string, string> {
+    const raw: Record<string, string> = Object.create(null)
+    for (const line of content.split("\n")) {
+        const trimmed = line.trim()
+        if (trimmed === "" || trimmed.startsWith("#")) {
+            continue
+        }
+        const eq = trimmed.indexOf("=")
+        if (eq === -1) {
+            continue
+        }
+        const key = trimmed.substring(0, eq).trim()
+        if (!OS_RELEASE_KEY.test(key)) {
+            continue
+        }
+        raw[key] = unquote(trimmed.substring(eq + 1).trim())
+    }
+    return raw
+}
+
+/**
+ * Returns OS release information for the current platform, or `null` on
+ * unsupported platforms or when no os-release file can be read on Linux.
  *
- * On Linux, `name`, `version`, and `arch` are normalized from `NAME`/`PRETTY_NAME`,
- * `VERSION_ID`/`VERSION`, and `os.arch()` respectively. All raw keys from
- * `/etc/os-release` are also present on the returned object.
+ * On Linux, the information is read from `/etc/os-release`, falling back to
+ * `/usr/lib/os-release`. `name`, `version`, and `arch` are normalized from
+ * `NAME`/`PRETTY_NAME`, `VERSION_ID`/`VERSION`, and `os.arch()` respectively.
+ * All raw keys from the file are also present on the returned object. Comment
+ * lines are ignored, single- and double-quoted values are unquoted (with
+ * backslash escapes inside double quotes), and keys that are not upper-case
+ * shell variable names are skipped.
  *
  * On Windows, distinguishes Windows 11 from Windows 10 by NT build number
  * (>= 22000 → Windows 11).
  *
  * @returns An {@link OsRelease} object on supported platforms, or `null` when
- *   the platform is unsupported or `/etc/os-release` is absent on Linux.
+ *   the platform is unsupported or no os-release file can be read on Linux.
  *
  * @example
  * ```ts
@@ -45,21 +117,11 @@ const OS_RELEASE = "/etc/os-release"
 export function osRelease(): OsRelease | null {
     const p = platform()
     if (p === "linux") {
-        if (!existsSync(OS_RELEASE)) {
+        const content = readOsReleaseFile()
+        if (content === null) {
             return null
         }
-        const raw: Record<string, string> = {}
-        for (const line of readFileSync(OS_RELEASE, "utf-8").split("\n")) {
-            const eq = line.indexOf("=")
-            if (eq === -1) {
-                continue
-            }
-            const key = line.substring(0, eq).trim()
-            raw[key] = line
-                .substring(eq + 1)
-                .trim()
-                .replace(/^"|"$/g, "")
-        }
+        const raw = parseOsRelease(content)
         return {
             ...raw,
             name: raw["NAME"] ?? raw["PRETTY_NAME"] ?? "",

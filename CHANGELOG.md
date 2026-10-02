@@ -13,6 +13,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   one minute with a `RangeError`. Previously, Node.js silently replaced oversized delays with 1 ms,
   so a value such as `monitorMemory(logger, 1000)` (or `main(name, logger, 1000)`) flooded the logs
   with a report every millisecond.
+- `osRelease` no longer throws when `/etc/os-release` exists but cannot be read (e.g. `EACCES`); it
+  returns `null` instead, as documented. It now falls back to `/usr/lib/os-release`, skips comment
+  lines, unquotes single-quoted values and backslash escapes inside double quotes, and leaves
+  unbalanced quotes untouched instead of stripping a single quote character.
 
 ### Security
 
@@ -27,6 +31,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `main` now logs the Node.js process options (`execArgv` and `NODE_OPTIONS`) at `debug` instead of
   `info` level, since they can reveal sensitive flags such as `--inspect=0.0.0.0` or `--require`
   paths. Configure the logger with `lowestLevel: "debug"` to keep seeing them.
+- `osRelease` only accepts upper-case shell variable names as os-release keys and parses into a
+  null-prototype record, so keys such as `__proto__` or `constructor` are skipped.
 
 ## [0.10.10] - 2026-08-10
 

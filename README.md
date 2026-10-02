@@ -117,11 +117,14 @@ const payload: RuntimeObject = {
 ### `osRelease`
 
 Returns OS release information for the current platform as an `OsRelease` object, or `null` on
-unsupported platforms or when `/etc/os-release` is absent on Linux.
+unsupported platforms or when no os-release file can be read on Linux (it never throws for a missing
+or unreadable file).
 
 The `OsRelease` type exposes three normalized fields — `name`, `version`, and `arch` — present on
-all platforms. On Linux, all raw key-value pairs from `/etc/os-release` (e.g. `PRETTY_NAME`, `ID`,
-`ID_LIKE`) are also accessible by string index.
+all platforms. On Linux, the data comes from `/etc/os-release`, falling back to
+`/usr/lib/os-release`, and all raw key-value pairs (e.g. `PRETTY_NAME`, `ID`, `ID_LIKE`) are also
+accessible by string index. Comment lines are ignored, single- and double-quoted values are
+unquoted, and keys that are not upper-case shell variable names (such as `__proto__`) are skipped.
 
 ```ts
 import { osRelease } from "@darthcav/ts-utils"
