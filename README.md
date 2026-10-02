@@ -114,6 +114,24 @@ const payload: RuntimeObject = {
 }
 ```
 
+### `asRuntimeObject`, `asString`, and `toRuntimeObjectArray`
+
+Narrow `unknown` values (e.g. parsed JSON) without type assertions. `asRuntimeObject` returns the
+value only when it is a plain object (an object literal, a `JSON.parse` result, or an
+`Object.create(null)` object); arrays, class instances, and built-ins such as `Date` or `Map` yield
+`undefined`. `toRuntimeObjectArray` keeps only the plain-object elements of an array.
+
+Keys are not sanitized: an own `__proto__` or `constructor` key from untrusted JSON is kept, so
+guard against those keys before merging the result into other objects.
+
+```ts
+import { asRuntimeObject, asString, toRuntimeObjectArray } from "@darthcav/ts-utils"
+
+const body = asRuntimeObject(JSON.parse(input))
+const name = asString(body?.["name"]) ?? "anonymous"
+const items = toRuntimeObjectArray(body?.["items"])
+```
+
 ### `osRelease`
 
 Returns OS release information for the current platform as an `OsRelease` object, or `null` on

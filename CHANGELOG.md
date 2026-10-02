@@ -33,6 +33,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   paths. Configure the logger with `lowestLevel: "debug"` to keep seeing them.
 - `osRelease` only accepts upper-case shell variable names as os-release keys and parses into a
   null-prototype record, so keys such as `__proto__` or `constructor` are skipped.
+- `asRuntimeObject` (and therefore `toRuntimeObjectArray`) now accepts only plain objects: object
+  literals, `JSON.parse` results, and null-prototype objects, including those from other realms.
+  Class instances and built-ins such as `Date`, `Map`, `Set`, `RegExp`, or module namespace objects
+  now yield `undefined`. Previously any non-array object was accepted, contrary to the documented
+  "runtime JSON object" contract. The docs now also warn that own `__proto__`/`constructor` keys are
+  not sanitized.
 
 ## [0.10.10] - 2026-08-10
 
