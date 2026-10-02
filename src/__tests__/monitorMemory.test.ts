@@ -70,4 +70,28 @@ await suite("monitorMemory", () => {
         }
         assert.equal(setIntervalMock.mock.calls.length, 0)
     })
+
+    test("throws a RangeError when the interval exceeds setInterval's maximum", () => {
+        // Node.js would silently clamp these delays to 1 ms.
+        for (const hours of [597, 1_000, Number.MAX_VALUE]) {
+            assert.throws(() => monitorMemory(logger, hours), RangeError)
+        }
+        assert.equal(setIntervalMock.mock.calls.length, 0)
+    })
+
+    test("throws a RangeError when the interval is shorter than one minute", () => {
+        for (const hours of [1e-7, 0.5 / 60, Number.MIN_VALUE]) {
+            assert.throws(() => monitorMemory(logger, hours), RangeError)
+        }
+        assert.equal(setIntervalMock.mock.calls.length, 0)
+    })
+
+    test("accepts the boundary intervals", () => {
+        monitorMemory(logger, 1 / 60)
+        monitorMemory(logger, 2_147_483_647 / 3_600_000)
+        const delays = setIntervalMock.mock.calls.map((c) => c.arguments[1])
+        assert.equal(delays.length, 2)
+        assert.ok(Math.abs((delays[0] as number) - 60_000) < 1e-6)
+        assert.ok((delays[1] as number) <= 2_147_483_647)
+    })
 })

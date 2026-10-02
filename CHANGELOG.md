@@ -7,6 +7,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- `monitorMemory` now rejects intervals longer than 2³¹ − 1 ms (about 596.5 hours) or shorter than
+  one minute with a `RangeError`. Previously, Node.js silently replaced oversized delays with 1 ms,
+  so a value such as `monitorMemory(logger, 1000)` (or `main(name, logger, 1000)`) flooded the logs
+  with a report every millisecond.
+
 ## [0.10.10] - 2026-08-10
 
 ### Fixed

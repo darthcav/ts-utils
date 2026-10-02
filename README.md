@@ -53,7 +53,9 @@ const logger = await getConsoleLogger("my-app", "debug")
 ### `monitorMemory`
 
 Starts a periodic interval that logs process uptime and memory usage (in bytes) through a
-`"monitorMemory"` child category of the given logger. The interval defaults to every 24 hours.
+`"monitorMemory"` child category of the given logger. The interval defaults to every 24 hours and
+must be between one minute (`1 / 60`) and about 596.5 hours (2³¹ − 1 ms, the longest delay
+`setInterval` supports); anything outside that range throws a `RangeError`.
 
 ```ts
 import { getConsoleLogger, main, monitorMemory } from "@darthcav/ts-utils"
