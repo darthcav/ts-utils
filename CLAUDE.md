@@ -4,10 +4,36 @@
 
 ### Branching Strategy
 
-- **Main branch**: `main` - production-ready code only
+- **`main`** - production branch, kept in sync with published npm releases. Do not commit directly;
+  it only moves via a release merge from `dev` (see Releases below).
+- **`dev`** - default working branch. Day-to-day commits, PRs, and Dependabot updates
+  (`.github/dependabot.yml` targets `dev`, `interval: monthly`) land here first.
 - **Feature branches**: `feature/<feature-name>` - for new features
 - **Bugfix branches**: `fix/<issue-description>` - for bug fixes
 - **Always create a feature branch** before making changes to existing functionality
+- Feature/bugfix branches PR into `dev`, not `main`, directly
+
+### Releases
+
+- Cut manually: bump the version in `package.json`/`package-lock.json`, update `CHANGELOG.md` and
+  the README version badge on `dev`, then merge `dev` into `main` with a `Release vX.Y.Z` commit
+  message, tag `vX.Y.Z`, and push both.
+- Pushing the tag triggers `.github/workflows/publish.yml`, which runs
+  `npm publish --provenance --access public` — this is a real, public, irreversible action, so don't
+  tag/push a release without the user's explicit go-ahead.
+- `publish.yml` first runs a `verify` job without the npm OIDC token: it fails unless the tag equals
+  `v` + the `package.json` version and points to a commit on `main`, then runs lint, typecheck, and
+  tests. The `publish` job then installs with `--ignore-scripts`, without the npm cache, in the
+  `npm` environment (add required reviewers to that environment so each publish needs approval).
+- In workflows, reference actions by version tag (e.g. `actions/checkout@v7`), install with
+  `npm ci --ignore-scripts`, and set `persist-credentials: false` on checkouts.
+- `.github/workflows/sync-dev.yml` runs on every push to `main`: it opens (and immediately merges) a
+  `main` → `dev` PR so `dev` doesn't drift behind the release commit. It merges right away rather
+  than relying on `--auto`/auto-merge, since `dev` has no branch-protection rules for that feature
+  to gate on.
+- This sync workflow needs the repository setting **"Allow GitHub Actions to create and approve pull
+  requests"** enabled (Settings → Actions → General) — without it, `gh pr create` fails and `dev`
+  silently falls behind again.
 
 ### Commit Practices
 
@@ -32,8 +58,11 @@
 - **Check coverage** — ensure test coverage does not decrease and critical paths are covered.
 - **Run lint** — ensure code style is consistent and no lint errors are introduced.
 - **Update documentation** — if the change adds, removes, or modifies user-visible features, update
-  `README.md` (feature descriptions, route table, env vars) and any relevant guides in `docs/`
-  before merging. Also update `TODO.md` to mark completed items.
+  `README.md` (feature descriptions, usage examples, project structure) and add an entry under
+  `[Unreleased]` in `CHANGELOG.md` before merging.
+- **Keep it cross-platform** — CI runs the tests on Linux, Windows, and macOS. In `package.json`
+  scripts, quote globs with escaped double quotes (`\"src/**/*.test.ts\"`, not single quotes, which
+  `cmd.exe` passes through literally), and use `shx` instead of POSIX-only commands.
 
 ## Stack
 

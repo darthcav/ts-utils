@@ -20,6 +20,7 @@
                 "useLiteralKeys": "off"
             },
             "style": {
+                "noDefaultExport": "error",
                 "useBlockStatements": "error"
             },
             "nursery": {

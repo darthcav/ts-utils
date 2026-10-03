@@ -2,7 +2,7 @@ import assert from "node:assert/strict"
 import { platform } from "node:os"
 import { suite, test } from "node:test"
 import type { Assert, Equal } from "asserttt"
-import { type OsRelease, osRelease } from "../os-utils.ts"
+import { type OsRelease, osRelease } from "../osRelease.ts"
 
 type _OsReleaseName = Assert<Equal<OsRelease["name"], string>>
 type _OsReleaseVersion = Assert<Equal<OsRelease["version"], string>>

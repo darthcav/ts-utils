@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { mock, suite, test } from "node:test"
 import type { Assert, Equal } from "asserttt"
-import type { OsRelease } from "../os-utils.ts"
+import type { OsRelease } from "../osRelease.ts"
 
 let mockRelease = "10.0.22000"
 
@@ -13,7 +13,7 @@ mock.module("node:os", {
     },
 })
 
-const { osRelease } = await import("../os-utils.ts")
+const { osRelease } = await import("../osRelease.ts")
 
 type _OsReleaseName = Assert<Equal<OsRelease["name"], string>>
 type _OsReleaseVersion = Assert<Equal<OsRelease["version"], string>>

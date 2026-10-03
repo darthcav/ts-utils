@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { suite, test } from "node:test"
-import millisecondsToString from "../millisecondsToString.ts"
+import { millisecondsToString } from "../millisecondsToString.ts"
 
 await suite("millisecondsToString", () => {
     test("seconds only", () => {

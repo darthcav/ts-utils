@@ -1,0 +1,2 @@
+# Keep LF line endings on every platform (Biome and Prettier expect LF).
+* text=auto eol=lf
