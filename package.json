@@ -31,7 +31,6 @@
         "@types/node": "26.6.4",
         "asserttt": "1.0.1",
         "prettier": "3.9.9",
-        "shx": "0.4.0",
         "typedoc": "0.28.20"
     },
     "repository": {
@@ -43,7 +42,7 @@
     },
     "scripts": {
         "\n===== Build =====": "",
-        "clean": "shx rm -rf dist/*",
+        "clean": "node -e \"fs.rmSync('dist', { recursive: true, force: true })\"",
         "build": "npm run clean && tsc",
         "prepare": "npm run build",
         "\n===== Typecheck =====": "",
@@ -51,11 +50,11 @@
         "\n===== Test =====": "",
         "test": "node --env-file-if-exists=.env.local --experimental-test-module-mocks --test --test-reporter=spec \"src/**/*.test.ts\"",
         "test:coverage": "node --env-file-if-exists=.env.local --experimental-test-module-mocks --experimental-test-coverage --test \"src/**/*.test.ts\"",
-        "test:coverage:lcov": "shx mkdir -p coverage && node --env-file-if-exists=.env.local --experimental-test-module-mocks --experimental-test-coverage --test-reporter=lcov --test-reporter-destination=coverage/lcov.info --test-reporter=spec --test-reporter-destination=stdout --test \"src/**/*.test.ts\"",
+        "test:coverage:lcov": "node -e \"fs.mkdirSync('coverage', { recursive: true })\" && node --env-file-if-exists=.env.local --experimental-test-module-mocks --experimental-test-coverage --test-reporter=lcov --test-reporter-destination=coverage/lcov.info --test-reporter=spec --test-reporter-destination=stdout --test \"src/**/*.test.ts\"",
         "\n===== Linter =====": "",
         "lint": "biome check . && prettier --check \"**/*.md\" --ignore-path .gitignore",
         "lint:fix": "biome check --write . && prettier --write \"**/*.md\" --ignore-path .gitignore",
         "\n===== TypeDoc =====": "",
-        "doc": "shx rm -rf public/* && typedoc --tsconfig tsconfig.json"
+        "doc": "typedoc --tsconfig tsconfig.json"
     }
 }
