@@ -68,7 +68,8 @@ export type MainOptions = {
     /**
      * When greater than `0`, starts periodic memory logging every
      * `monitorMemoryHours` hours via {@link monitorMemory} (which validates
-     * the value). Defaults to `0` (disabled).
+     * the value). Must be `0` or a positive finite number; negative values
+     * and `NaN` throw. Defaults to `0` (disabled).
      */
     monitorMemoryHours?: number
     /**
@@ -174,6 +175,12 @@ export function main(
         flushTimeoutMs = DEFAULT_FLUSH_TIMEOUT_MS,
     } = options ?? {}
 
+    // Positive values are validated further by `monitorMemory`.
+    if (!Number.isFinite(monitorMemoryHours) || monitorMemoryHours < 0) {
+        throw new RangeError(
+            `main: "monitorMemoryHours" must be 0 (disabled) or a positive finite number, received ${monitorMemoryHours}`,
+        )
+    }
     if (
         !Number.isFinite(flushTimeoutMs) ||
         flushTimeoutMs < 0 ||

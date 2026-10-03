@@ -515,14 +515,22 @@ await suite("main", () => {
         })
     }
 
-    test("rejects invalid monitorMemoryHours before registering any handler", () => {
-        assert.throws(
-            () => main("test-app", logger, { monitorMemoryHours: 1_000 }),
-            RangeError,
-        )
-        assert.equal(onMock.mock.callCount(), 0)
-        teardowns.push(main("test-app", logger))
-    })
+    for (const monitorMemoryHours of [
+        1_000,
+        -1,
+        Number.NaN,
+        Number.POSITIVE_INFINITY,
+    ]) {
+        test(`rejects monitorMemoryHours=${monitorMemoryHours} before registering any handler`, () => {
+            assert.throws(
+                () => main("test-app", logger, { monitorMemoryHours }),
+                RangeError,
+            )
+            assert.equal(onMock.mock.callCount(), 0)
+            assert.equal(setIntervalMock.mock.callCount(), 0)
+            teardowns.push(main("test-app", logger))
+        })
+    }
 
     // Lifecycle
 
