@@ -7,6 +7,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Removed
+
+- `shx` dev dependency. The `clean` and `test:coverage:lcov` scripts now use Node built-ins
+  (`fs.rmSync`, `fs.mkdirSync`) via `node -e`, and `doc` relies on TypeDoc's default
+  `cleanOutputDir`. This drops the `shelljs` → `fast-glob` → `micromatch` → `braces` chain flagged
+  by GHSA-vfj7-8cjw-p6xm.
+
 ## [0.11.0] - 2026-10-03
 
 This release replaces the positional parameters of `main` with an options object and changes the
