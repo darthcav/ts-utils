@@ -7,7 +7,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-## [0.11.0] - 2026-10-02
+## [0.11.0] - 2026-10-03
 
 This release replaces the positional parameters of `main` with an options object and changes the
 behavior of `main`, `monitorMemory`, `getDummyLogger`, `osRelease`, `asRuntimeObject`, and
@@ -74,8 +74,9 @@ behavior of `main`, `monitorMemory`, `getDummyLogger`, `osRelease`, `asRuntimeOb
 
 ### Fixed
 
-- `main` now starts memory monitoring (which validates `monitorMemoryHours`) before registering any
-  process handler, so an invalid value throws a `RangeError` with nothing left registered.
+- `main` now validates `monitorMemoryHours` before registering any process handler, so an invalid
+  value throws a `RangeError` with nothing left registered. Negative values and `NaN`, which
+  previously disabled monitoring silently, now throw as well; `0` still disables it.
 - `getConsoleLogger` no longer writes ANSI escape codes when its output is not a color terminal.
   Colors are used only when both stdout and stderr are terminals that support them (respecting
   `NO_COLOR`, `NODE_DISABLE_COLORS`, and `TERM=dumb`); otherwise the plain text formatter with the
@@ -88,8 +89,9 @@ behavior of `main`, `monitorMemory`, `getDummyLogger`, `osRelease`, `asRuntimeOb
   exits immediately.
 - `monitorMemory` now rejects intervals longer than 2³¹ − 1 ms (about 596.5 hours) or shorter than
   one minute with a `RangeError`. Previously, Node.js silently replaced oversized delays with 1 ms,
-  so a value such as `monitorMemory(logger, 1000)` (or `main(name, logger, 1000)`) flooded the logs
-  with a report every millisecond.
+  so a value such as `monitorMemory(logger, 1000)` (or
+  `main(name, logger, { monitorMemoryHours: 1000 })`) flooded the logs with a report every
+  millisecond.
 - `osRelease` no longer throws when `/etc/os-release` exists but cannot be read (e.g. `EACCES`); it
   returns `null` instead, as documented. It now falls back to `/usr/lib/os-release`, skips comment
   lines, and unquotes single-quoted values and backslash escapes inside double quotes. **Breaking:**

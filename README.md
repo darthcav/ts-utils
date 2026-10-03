@@ -222,13 +222,13 @@ Optional settings are passed as a `MainOptions` object:
 | Option                       | Type                          | Default | Description                                                |
 | ---------------------------- | ----------------------------- | ------- | ---------------------------------------------------------- |
 | `launcher`                   | `() => void \| Promise<void>` | —       | Runs after the handlers are registered; may be async.      |
-| `monitorMemoryHours`         | `number`                      | `0`     | When greater than `0`, logs memory usage every N hours.    |
+| `monitorMemoryHours`         | `number`                      | `0`     | Logs memory usage every N hours; `0` disables it.          |
 | `defaultInterruptionHandler` | `boolean`                     | `true`  | Register the `SIGINT`/`SIGTERM` handlers.                  |
 | `flushTimeoutMs`             | `number`                      | `3000`  | Longest wait for the log sinks to flush (0 to 2³¹ − 1 ms). |
 
-An out-of-range `monitorMemoryHours` or `flushTimeoutMs` throws a `RangeError` before any handler is
-registered. If the launcher throws or its promise rejects, the failure is logged and the process
-exits with status `1`.
+An out-of-range `monitorMemoryHours` (negative, `NaN`, or outside `monitorMemory`'s range) or
+`flushTimeoutMs` throws a `RangeError` before any handler is registered. If the launcher throws or
+its promise rejects, the failure is logged and the process exits with status `1`.
 
 `main` returns a teardown function that removes the handlers it registered and stops the memory
 monitoring (it does not exit the process). Only one `main` call can be active at a time: calling it
@@ -240,16 +240,21 @@ import { main } from "@darthcav/ts-utils"
 
 const logger = getLogger(["my-app"])
 
-main("my-app", logger)                                   // all defaults
+// Call main() once per process. Alternatives:
+
+// 1. All defaults:
+main("my-app", logger)
+
+// 2. An async launcher and memory logging every 2 hours:
 main("my-app", logger, {
     launcher: async () => {
         await connectToDatabase()
         startServer()
     },
-    monitorMemoryHours: 2,                               // log memory every 2 hours
+    monitorMemoryHours: 2,
 })
 
-// Manage graceful shutdown in the application instead:
+// 3. Manage graceful shutdown in the application instead:
 const teardown = main("my-app", logger, {
     launcher: () => startServer(),
     defaultInterruptionHandler: false,
@@ -292,14 +297,17 @@ npm run doc
 
 ```
 src/
-  index.ts          # Public API entry point
-  main.ts           # Main module
-  noop.ts           # No-op function
-  osRelease.ts      # OS release utilities
-  loggers/          # Logger utilities
-  __tests__/        # Test files
-dist/               # Compiled output (generated)
-public/             # Documentation output (generated)
+  index.ts                 # Public API entry point
+  main.ts                  # Process bootstrap (main)
+  millisecondsToString.ts  # Duration formatting
+  monitorMemory.ts         # Periodic memory reporting
+  noop.ts                  # No-op function
+  osRelease.ts             # OS release utilities
+  types.ts                 # RuntimeObject type and type guards
+  loggers/                 # Logger utilities
+  __tests__/               # Test files
+dist/                      # Compiled output (generated)
+public/                    # Documentation output (generated)
 ```
 
 ## License
