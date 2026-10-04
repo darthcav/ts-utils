@@ -38,6 +38,8 @@
     - `osRelease` and `OsRelease`
     - `isRuntimeObject`, `isString`, `asRuntimeObject`, `asString`, `toRuntimeObjectArray`, and
       `RuntimeObject`
+    - the type-level testing helpers `Assert`, `Equal`, `Extends`, `Not`, `IsAny`, `IsNever`, and
+      `IsUnknown` (types only, no runtime exports)
 - The library is organized as small leaf modules plus one orchestration module:
     - `src/main.ts` is the central process-bootstrap utility. It logs startup state, registers
       lifecycle and fatal error handlers, optionally starts memory monitoring, invokes an optional
@@ -56,10 +58,12 @@
     - `src/types.ts` provides runtime type guards (`isRuntimeObject`, `isString`), narrowing helpers
       (`asRuntimeObject`, `asString`, `toRuntimeObjectArray`), and the `RuntimeObject` type alias.
     - `src/millisecondsToString.ts` and `src/noop.ts` are standalone utility modules.
+    - `src/type-testing/` holds the type-level testing helpers, one type per module (e.g.
+      `src/type-testing/Equal.ts`).
 - Documentation is generated from `src/index.ts` via TypeDoc into `public/`. TypeDoc uses
   `README.md` as the docs landing page.
 - Packaging is intentionally source-aware: `package.json` publishes `dist/` and `src/`, but excludes
-  `src/__tests__` and `*.test.ts`.
+  `src/__tests__` and `dist/__tests__`.
 
 ## Key conventions
 
@@ -73,8 +77,10 @@
 - Exported functions and exported types should have complete JSDoc because TypeDoc output is part of
   the package workflow.
 - All modules use named exports only; Biome's `noDefaultExport` rule enforces this. Name
-  single-function modules after their function in camelCase (e.g. `src/osRelease.ts`), and re-export
-  new public utilities from `src/index.ts` (`src/__tests__/index.test.ts` pins the public API).
+  single-function modules after their function in camelCase (e.g. `src/osRelease.ts`) and
+  single-type modules after their type in PascalCase (e.g. `src/type-testing/Equal.ts`), and
+  re-export new public utilities from `src/index.ts` (`src/__tests__/index.test.ts` pins the public
+  runtime API).
 - `main()` takes its optional settings as a single `MainOptions` object; add new settings there
   rather than as extra parameters. The positional forms were removed in 0.11.0, and a non-object
   `options` argument throws a `TypeError` so untyped callers fail loudly.
@@ -102,3 +108,7 @@
   `index.test.ts`). Keep coverage aligned with the module you change.
 - Tests import source files from `src/` directly with `.ts` extensions; they do not test compiled
   output from `dist/`.
+- Type-level assertions in tests use the library's own helpers (`Assert`, `Equal`, … imported from
+  `src/type-testing/`), declared as unused type aliases, with `@ts-expect-error` for cases that must
+  fail. They are checked by `npm run typecheck`, not by `npm test`, since Node.js strips types
+  without checking them.

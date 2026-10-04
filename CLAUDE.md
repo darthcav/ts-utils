@@ -83,6 +83,7 @@
 - `npm run typecheck` — type-check without emitting
 - `npm test` — run tests (Node.js built-in test runner)
 - `npm run test:coverage` — run tests with coverage
+- `npm run test:coverage:lcov` — run tests with coverage, also writing `coverage/lcov.info`
 - `npm run lint` — check with Biome and Prettier (Markdown)
 - `npm run lint:fix` — auto-fix with Biome and Prettier (Markdown)
 - `npm run doc` — generate TypeDoc documentation
