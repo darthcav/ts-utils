@@ -88,10 +88,11 @@ export type MainOptions = {
 }
 
 /**
- * Bootstraps an application process: logs startup information, registers
- * handlers for `SIGINT`, `SIGTERM`, `uncaughtException`, and
- * `unhandledRejection`, optionally starts memory monitoring, then runs the
- * optional launcher function.
+ * Bootstraps an application process: logs startup information, optionally
+ * registers handlers for `SIGINT` and `SIGTERM` (see
+ * {@link MainOptions.defaultInterruptionHandler}), always registers handlers
+ * for `uncaughtException` and `unhandledRejection`, optionally starts memory
+ * monitoring, then runs the optional launcher function.
  *
  * The process title, PID, name, and `NODE_ENV` are logged at `info` level.
  * The Node.js process options (`execArgv` and `NODE_OPTIONS`) are logged at
@@ -143,12 +144,15 @@ export type MainOptions = {
  *
  * @example Managing graceful shutdown in the application:
  * ```ts
+ * let server: Server | undefined
  * const teardown = main("my-app", logger, {
- *     launcher: () => startServer(),
+ *     launcher: () => {
+ *         server = startServer()
+ *     },
  *     defaultInterruptionHandler: false,
  * })
  * process.once("SIGTERM", async () => {
- *     await server.close()
+ *     await server?.close()
  *     teardown()
  * })
  * ```

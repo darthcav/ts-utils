@@ -7,6 +7,32 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.12.1] - 2026-10-04
+
+This release changes the repository's release automation and corrects the documentation; the library
+code is unchanged.
+
+### Changed
+
+- The `sync-dev.yml` workflow merges `main` into `dev` directly through the GitHub merges API
+  instead of opening and immediately merging a sync PR. The PR's CI run raced the merge and failed;
+  without a PR, `tests.yml` no longer runs for the sync. The repository setting "Allow GitHub
+  Actions to create and approve pull requests" is no longer needed.
+
+### Fixed
+
+- The README and JSDoc example of `main` that manages graceful shutdown in the application no longer
+  fails to type-check when `startServer()` returns a server, and no longer uses an undefined
+  `server` variable.
+- The README now documents that `getConsoleLogger` resolves to the logger (it is async) and that
+  `main` exits with status `128 + signal number` when another listener for the signal is registered.
+  The `main` JSDoc no longer implies that the `SIGINT`/`SIGTERM` handlers are always registered, and
+  the `OsRelease` JSDoc mentions the `/usr/lib/os-release` fallback.
+- `.github/copilot-instructions.md` covers the type-testing helpers, and `CLAUDE.md` lists the
+  `test:coverage:lcov` script.
+- `CHANGELOG.md` gives the actual release dates of 0.1.0 to 0.8.2 (previously only "2025"), notes
+  that 0.8.6 was never published, and describes the original `noop` correctly.
+
 ## [0.12.0] - 2026-10-04
 
 This release adds type-level testing helpers and contains no breaking changes.
@@ -321,6 +347,8 @@ behavior of `main`, `monitorMemory`, `getDummyLogger`, `osRelease`, `asRuntimeOb
 
 ## [0.8.6] - 2026-03-31
 
+This version was never tagged or published to npm; its changes first shipped in 0.8.7.
+
 ### Added
 
 - `prettier` for Markdown linting and formatting (`lint` and `lint:fix` scripts).
@@ -360,13 +388,13 @@ behavior of `main`, `monitorMemory`, `getDummyLogger`, `osRelease`, `asRuntimeOb
 - CI workflow renamed to `lint/test/coverage CI` and matrix format aligned with template.
 - `files` in `package.json` switched to negation-based pattern for clarity.
 
-## [0.8.2] - 2025
+## [0.8.2] - 2026-03-14
 
 ### Added
 
-- `noop` — a no-operation function that accepts any arguments and returns `undefined`.
+- `noop` — a no-operation function that does nothing and returns `void`.
 
-## [0.8.1] - 2025
+## [0.8.1] - 2026-03-14
 
 ### Added
 
@@ -380,20 +408,20 @@ behavior of `main`, `monitorMemory`, `getDummyLogger`, `osRelease`, `asRuntimeOb
 - `main` enhanced with overloads supporting all combinations of the optional `launcher` and
   `monitorMemoryHours` parameters.
 
-## [0.8.0] - 2025
+## [0.8.0] - 2026-03-10
 
 ### Changed
 
 - Removed the SIGKILL handler from `main`; only SIGINT, SIGTERM, `uncaughtException`, and
   `unhandledRejection` are handled.
 
-## [0.7.0] - 2025
+## [0.7.0] - 2026-03-10
 
 ### Added
 
 - SIGKILL handler in `main`.
 
-## [0.6.0] - 2025
+## [0.6.0] - 2026-03-10
 
 ### Fixed
 
@@ -404,31 +432,31 @@ behavior of `main`, `monitorMemory`, `getDummyLogger`, `osRelease`, `asRuntimeOb
 
 - `uncaughtException` and `unhandledRejection` handlers in `main` for improved error resilience.
 
-## [0.5.0] - 2025
+## [0.5.0] - 2026-03-10
 
 ### Added
 
 - Optional `launcher` parameter to `main`, allowing an async function to be executed on startup.
 
-## [0.4.0] - 2025
+## [0.4.0] - 2026-03-10
 
 ### Added
 
 - `defaultInterruptionHandler` parameter to `main` to opt out of automatic SIGINT/SIGTERM handling.
 
-## [0.3.0] - 2025
+## [0.3.0] - 2026-03-07
 
 ### Added
 
 - `getConsoleLogger` — creates a `Logger` backed by the Node.js `console`.
 
-## [0.2.0] - 2025
+## [0.2.0] - 2026-03-07
 
 ### Changed
 
 - Updated logger method signatures for consistency with `@logtape/logtape`.
 
-## [0.1.0] - 2025
+## [0.1.0] - 2026-03-07
 
 ### Added
 

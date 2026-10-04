@@ -28,7 +28,7 @@ npm install @darthcav/ts-utils
 
 ### `getConsoleLogger`
 
-Configures logging and returns a `Logger` for the given category name. Records at or above
+Configures logging and resolves to a `Logger` for the given category name. Records at or above
 `lowestLevel` are written to the console with RFC 3339 timestamps. The internal `logtape/meta`
 logger is silenced. The function is safe to call more than once — each call reconfigures logtape
 from scratch (the most recent call wins).
@@ -214,8 +214,9 @@ Before exiting, `main` flushes and disposes the configured logtape sinks (for at
 `flushTimeoutMs`, 3 seconds by default), so buffered or asynchronous sinks keep the final messages.
 On `SIGINT`/`SIGTERM` it logs the signal at `info` level and then re-raises it, so the process ends
 as killed by that signal (exit status 130/143), which shells and supervisors such as systemd treat
-as a clean stop. Uncaught exceptions, unhandled rejections, and launcher failures exit with status
-`1`. A second signal or error during the flush exits immediately.
+as a clean stop. If another listener for that signal is registered, the process exits with status
+`128 + signal number` instead. Uncaught exceptions, unhandled rejections, and launcher failures exit
+with status `1`. A second signal or error during the flush exits immediately.
 
 Optional settings are passed as a `MainOptions` object:
 
@@ -255,12 +256,15 @@ main("my-app", logger, {
 })
 
 // 3. Manage graceful shutdown in the application instead:
+let server: Server | undefined
 const teardown = main("my-app", logger, {
-    launcher: () => startServer(),
+    launcher: () => {
+        server = startServer()
+    },
     defaultInterruptionHandler: false,
 })
 process.once("SIGTERM", async () => {
-    await server.close()
+    await server?.close()
     teardown()
 })
 ```
@@ -271,7 +275,7 @@ were removed in 0.11.0; passing anything other than an options object throws a `
 ### Type testing
 
 Type-level helpers to check types at compile time, e.g. in test files. They are types only, so they
-have no runtime cost and add no dependency to your tests:
+add no code at runtime:
 
 - `Assert<T>` type-checks only when `T` is exactly `true`.
 - `Equal<X, Y>` is `true` when `X` and `Y` are identical types. It is stricter than mutual
@@ -349,7 +353,7 @@ public/                    # Documentation output (generated)
 
 [node-version]: https://img.shields.io/badge/node-%3E%3D26-orange.svg?style=flat-square
 [node-url]: https://nodejs.org
-[version-image]: https://img.shields.io/badge/version-0.12.0-blue.svg?style=flat-square
+[version-image]: https://img.shields.io/badge/version-0.12.1-blue.svg?style=flat-square
 [ci-badge]: https://github.com/darthcav/ts-utils/actions/workflows/tests.yml/badge.svg
 [coverage-badge]:
     https://codecov.io/github/darthcav/ts-utils/branch/dev/graph/badge.svg?token=RNEPER4KEI

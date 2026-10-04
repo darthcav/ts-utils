@@ -5,8 +5,10 @@ import type { RuntimeObject } from "./types.ts"
 /**
  * OS release information with normalized fields and optional platform-specific extras.
  *
- * `name`, `version`, and `arch` are always present. On Linux, all keys from
- * `/etc/os-release` (e.g. `ID`, `PRETTY_NAME`, `ID_LIKE`) are also accessible by string index.
+ * `name`, `version`, and `arch` are always present. On Linux, the keys read from
+ * the os-release file (`/etc/os-release`, or `/usr/lib/os-release` as a
+ * fallback; e.g. `ID`, `PRETTY_NAME`, `ID_LIKE`) are also accessible by string
+ * index.
  */
 export type OsRelease = {
     /** Human-readable OS name, e.g. `"Ubuntu"` or `"Windows 11"`. */

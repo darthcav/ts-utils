@@ -8,36 +8,33 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
 
 jobs:
   sync:
     runs-on: ubuntu-latest
-    name: Open/update sync PR
+    name: Merge main into dev
     steps:
-      - name: Ensure a main -> dev PR exists
+      - name: Merge main into dev
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          PR_NUMBER=$(gh pr list --repo "$GITHUB_REPOSITORY" --base dev --head main --state open --json number --jq '.[0].number')
-          if [ -z "$PR_NUMBER" ]; then
-            CREATE_OUTPUT=$(gh pr create --repo "$GITHUB_REPOSITORY" --base dev --head main \
-              --title "chore: sync main into dev" \
-              --body "Automated sync opened after a push to \`main\`, so \`dev\` doesn't fall behind. New commits to \`main\` update this PR automatically. If GitHub reports conflicts, resolve them locally (merge \`main\` into \`dev\` and push), then close this PR." 2>&1) \
-              && CREATE_STATUS=0 || CREATE_STATUS=$?
-            if [ "$CREATE_STATUS" -ne 0 ]; then
-              if echo "$CREATE_OUTPUT" | grep -qi "No commits between"; then
-                echo "Nothing to sync (dev already matches main)."
-                exit 0
-              fi
-              echo "$CREATE_OUTPUT" >&2
-              exit "$CREATE_STATUS"
+          # Merge server-side through the merges API rather than a PR: a PR
+          # would be merged right away anyway (nothing reviews it), and its
+          # `pull_request` CI run raced the merge and failed. Without a PR,
+          # tests.yml doesn't run for the sync; `main` was already tested on
+          # `dev`. The API answers 201 with the merge commit, 204 (empty) when
+          # `dev` already contains `main`, and 409 on conflicts.
+          if ! OUTPUT=$(gh api --method POST "repos/$GITHUB_REPOSITORY/merges" \
+            -f base=dev -f head=main \
+            -f commit_message="Merge branch 'main' into dev" 2>&1); then
+            echo "$OUTPUT" >&2
+            if echo "$OUTPUT" | grep -q "HTTP 409"; then
+              echo "::error::main conflicts with dev. Merge main into dev locally, resolve the conflicts, and push dev."
             fi
-            PR_NUMBER=$(gh pr list --repo "$GITHUB_REPOSITORY" --base dev --head main --state open --json number --jq '.[0].number')
+            exit 1
           fi
-
-          # Merge immediately: `dev` has no branch protection/required checks to
-          # wait on, and `--auto` needs branch protection configured to work at
-          # all, so it would just leave the PR open forever. This content was
-          # already vetted on `main`, so there's nothing to gate on here.
-          gh pr merge "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --merge
+          if [ -z "$OUTPUT" ]; then
+            echo "Nothing to sync (dev already contains main)."
+          else
+            echo "Merged main into dev."
+          fi
