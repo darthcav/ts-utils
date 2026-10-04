@@ -7,6 +7,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.12.2] - 2026-10-04
+
+This release only updates the README; the library code is unchanged.
+
 ### Changed
 
 - The README "Features" section lists the library's utilities instead of the repository's
