@@ -7,6 +7,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-10-04
+
+This release adds type-level testing helpers and contains no breaking changes.
+
 ### Added
 
 - Type-level testing helpers, exported as types: `Assert`, `Equal`, `Extends`, `Not`, `IsAny`,
