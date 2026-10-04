@@ -11,12 +11,20 @@ A collection of utility functions for TypeScript applications and modules.
 
 ## Features
 
-- Native TypeScript execution (Node.js type stripping, no transpiler needed at runtime)
-- Strict TypeScript configuration with isolated declarations
-- Biome for linting and formatting, Prettier for Markdown
-- Built-in Node.js test runner
-- TypeDoc for API documentation
-- GitHub Actions CI/CD workflows
+- `main`: bootstraps a Node.js process with startup logging, signal and error handlers, log flushing
+  on exit, and optional memory monitoring.
+- `getConsoleLogger` and `getDummyLogger`: a configured LogTape console logger, and a no-op logger
+  for tests.
+- `monitorMemory`: periodic uptime and memory usage reports.
+- `millisecondsToString`: human-readable, localized durations.
+- `osRelease`: OS name, version, and architecture on Linux and Windows.
+- `RuntimeObject` with `isRuntimeObject`, `isString`, `asRuntimeObject`, `asString`, and
+  `toRuntimeObjectArray`: narrow `unknown` values such as parsed JSON without type assertions.
+- `Assert`, `Equal`, `Extends`, `Not`, `IsAny`, `IsNever`, and `IsUnknown`: type-level assertions
+  for tests.
+- `noop`: a function that does nothing.
+
+ESM only, with TypeScript declarations included; requires Node.js 26 or later.
 
 ## Installation
 
@@ -353,7 +361,7 @@ public/                    # Documentation output (generated)
 
 [node-version]: https://img.shields.io/badge/node-%3E%3D26-orange.svg?style=flat-square
 [node-url]: https://nodejs.org
-[version-image]: https://img.shields.io/badge/version-0.12.1-blue.svg?style=flat-square
+[version-image]: https://img.shields.io/badge/version-0.12.2-blue.svg?style=flat-square
 [ci-badge]: https://github.com/darthcav/ts-utils/actions/workflows/tests.yml/badge.svg
 [coverage-badge]:
     https://codecov.io/github/darthcav/ts-utils/branch/dev/graph/badge.svg?token=RNEPER4KEI
