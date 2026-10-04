@@ -104,5 +104,7 @@
 
 - Use `node:test` and `node:assert/strict`
 - Tests must use `suite` and `test` instead of `describe` and `it` from `node:test`
-- Use `asserttt` for type-level assertions
+- Use the library's own type-testing helpers (`Assert`, `Equal`, … from `src/type-testing/`) for
+  type-level assertions, imported from their source modules, and `@ts-expect-error` for negative
+  cases
 - Test files go in `src/__tests__/` with `*.test.ts` suffix

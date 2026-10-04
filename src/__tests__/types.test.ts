@@ -1,12 +1,13 @@
 import assert from "node:assert/strict"
 import { suite, test } from "node:test"
 import { runInNewContext } from "node:vm"
-import type { Assert, Equal } from "asserttt"
 import {
     type RuntimeObject as PublicRuntimeObject,
     isRuntimeObject as publicIsRuntimeObject,
     isString as publicIsString,
 } from "../index.ts"
+import type { Assert } from "../type-testing/Assert.ts"
+import type { Equal } from "../type-testing/Equal.ts"
 import {
     asRuntimeObject,
     asString,

@@ -1,7 +1,8 @@
 import assert from "node:assert/strict"
 import { mock, suite, test } from "node:test"
-import type { Assert, Equal } from "asserttt"
 import type { OsRelease } from "../osRelease.ts"
+import type { Assert } from "../type-testing/Assert.ts"
+import type { Equal } from "../type-testing/Equal.ts"
 
 let mockRelease = "10.0.22000"
 

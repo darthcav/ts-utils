@@ -15,6 +15,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Removed
 
+- `asserttt` dev dependency. The type-level assertions in the tests now use the built-in
+  type-testing helpers.
 - `shx` dev dependency. The `clean` and `test:coverage:lcov` scripts now use Node built-ins
   (`fs.rmSync`, `fs.mkdirSync`) via `node -e`, and `doc` relies on TypeDoc's default
   `cleanOutputDir`. This drops the `shelljs` → `fast-glob` → `micromatch` → `braces` chain flagged
