@@ -268,6 +268,38 @@ process.once("SIGTERM", async () => {
 The positional forms of earlier versions (e.g. `main("my-app", logger, () => startServer(), 2)`)
 were removed in 0.11.0; passing anything other than an options object throws a `TypeError`.
 
+### Type testing
+
+Type-level helpers to check types at compile time, e.g. in test files. They are types only, so they
+have no runtime cost and add no dependency to your tests:
+
+- `Assert<T>` type-checks only when `T` is exactly `true`.
+- `Equal<X, Y>` is `true` when `X` and `Y` are identical types. It is stricter than mutual
+  assignability: `any` only equals `any`, and `readonly` and `?` modifiers must match.
+- `Extends<X, Y>` is `true` when `X` is assignable to `Y` (unions are compared as a whole).
+- `Not<T>` negates a predicate result.
+- `IsAny<T>`, `IsNever<T>`, and `IsUnknown<T>` detect those special types.
+
+Declare each assertion as an (unused) type alias; a failing one is reported by `tsc` (e.g.
+`tsc --noEmit`), not by the test runner, since Node.js strips types without checking them. Use
+`@ts-expect-error` to assert that an assertion fails.
+
+```ts
+import {
+    type Assert,
+    asString,
+    type Equal,
+    type IsUnknown,
+    type Not,
+} from "@darthcav/ts-utils"
+
+type _AsString = Assert<Equal<ReturnType<typeof asString>, string | undefined>>
+type _NotAny = Assert<Not<Equal<ReturnType<typeof asString>, any>>>
+type _Parsed = Assert<IsUnknown<Parameters<typeof asString>[0]>>
+// @ts-expect-error -- `string` is not `number`
+type _Fails = Assert<Equal<string, number>>
+```
+
 For the full API reference see the [API Documentation][pages-url].
 
 ## Development
@@ -305,6 +337,7 @@ src/
   osRelease.ts             # OS release utilities
   types.ts                 # RuntimeObject type and type guards
   loggers/                 # Logger utilities
+  type-testing/            # Type-level assertion helpers
   __tests__/               # Test files
 dist/                      # Compiled output (generated)
 public/                    # Documentation output (generated)
@@ -316,7 +349,7 @@ public/                    # Documentation output (generated)
 
 [node-version]: https://img.shields.io/badge/node-%3E%3D26-orange.svg?style=flat-square
 [node-url]: https://nodejs.org
-[version-image]: https://img.shields.io/badge/version-0.11.0-blue.svg?style=flat-square
+[version-image]: https://img.shields.io/badge/version-0.12.0-blue.svg?style=flat-square
 [ci-badge]: https://github.com/darthcav/ts-utils/actions/workflows/tests.yml/badge.svg
 [coverage-badge]:
     https://codecov.io/github/darthcav/ts-utils/branch/dev/graph/badge.svg?token=RNEPER4KEI

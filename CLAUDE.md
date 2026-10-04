@@ -62,7 +62,9 @@
   `[Unreleased]` in `CHANGELOG.md` before merging.
 - **Keep it cross-platform** — CI runs the tests on Linux, Windows, and macOS. In `package.json`
   scripts, quote globs with escaped double quotes (`\"src/**/*.test.ts\"`, not single quotes, which
-  `cmd.exe` passes through literally), and use `shx` instead of POSIX-only commands.
+  `cmd.exe` passes through literally). Instead of POSIX-only commands (`rm -rf`, `mkdir -p`), use
+  Node built-ins via `node -e` with single-quoted JS strings (e.g.
+  `node -e \"fs.rmSync('dist', { recursive: true, force: true })\"`) rather than adding a package.
 
 ## Stack
 
@@ -102,5 +104,7 @@
 
 - Use `node:test` and `node:assert/strict`
 - Tests must use `suite` and `test` instead of `describe` and `it` from `node:test`
-- Use `asserttt` for type-level assertions
+- Use the library's own type-testing helpers (`Assert`, `Equal`, … from `src/type-testing/`) for
+  type-level assertions, imported from their source modules, and `@ts-expect-error` for negative
+  cases
 - Test files go in `src/__tests__/` with `*.test.ts` suffix

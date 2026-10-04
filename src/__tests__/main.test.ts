@@ -2,8 +2,9 @@ import assert from "node:assert/strict"
 import process from "node:process"
 import { afterEach, beforeEach, mock, suite, test } from "node:test"
 import type { Logger } from "@logtape/logtape"
-import type { Assert, Equal } from "asserttt"
 import { type LauncherFunction, type MainOptions, main } from "../main.ts"
+import type { Assert } from "../type-testing/Assert.ts"
+import type { Equal } from "../type-testing/Equal.ts"
 
 type _LauncherFunctionShape = Assert<
     Equal<LauncherFunction, () => void | Promise<void>>
