@@ -13,6 +13,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `IsNever`, and `IsUnknown`. `Equal` checks type identity, so unlike mutual assignability it tells
   `any` apart from other types and `readonly`/optional properties apart from their counterparts.
 
+### Changed
+
+- `@logtape/logtape` updated from 2.3.10 to 2.3.11.
+
 ### Removed
 
 - `asserttt` dev dependency. The type-level assertions in the tests now use the built-in
