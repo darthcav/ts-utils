@@ -7,6 +7,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- The README "Features" section lists the library's utilities instead of the repository's
+  development tooling.
+
 ## [0.12.1] - 2026-10-04
 
 This release changes the repository's release automation and corrects the documentation; the library
