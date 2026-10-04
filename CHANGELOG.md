@@ -7,6 +7,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Type-level testing helpers, exported as types: `Assert`, `Equal`, `Extends`, `Not`, `IsAny`,
+  `IsNever`, and `IsUnknown`. `Equal` checks type identity, so unlike mutual assignability it tells
+  `any` apart from other types and `readonly`/optional properties apart from their counterparts.
+
 ### Removed
 
 - `shx` dev dependency. The `clean` and `test:coverage:lcov` scripts now use Node built-ins
