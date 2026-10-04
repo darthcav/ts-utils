@@ -27,13 +27,11 @@
   `npm` environment (add required reviewers to that environment so each publish needs approval).
 - In workflows, reference actions by version tag (e.g. `actions/checkout@v7`), install with
   `npm ci --ignore-scripts`, and set `persist-credentials: false` on checkouts.
-- `.github/workflows/sync-dev.yml` runs on every push to `main`: it opens (and immediately merges) a
-  `main` → `dev` PR so `dev` doesn't drift behind the release commit. It merges right away rather
-  than relying on `--auto`/auto-merge, since `dev` has no branch-protection rules for that feature
-  to gate on.
-- This sync workflow needs the repository setting **"Allow GitHub Actions to create and approve pull
-  requests"** enabled (Settings → Actions → General) — without it, `gh pr create` fails and `dev`
-  silently falls behind again.
+- `.github/workflows/sync-dev.yml` runs on every push to `main`: it merges `main` into `dev`
+  server-side through the GitHub merges API so `dev` doesn't drift behind the release commit. It
+  deliberately opens no PR, so `tests.yml` doesn't run for the sync (a PR that was merged right away
+  made its `pull_request` CI run race the merge and fail); `main` was already tested on `dev`. On
+  conflicts the workflow fails, and `main` has to be merged into `dev` locally.
 
 ### Commit Practices
 

@@ -7,6 +7,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- The `sync-dev.yml` workflow merges `main` into `dev` directly through the GitHub merges API
+  instead of opening and immediately merging a sync PR. The PR's CI run raced the merge and failed;
+  without a PR, `tests.yml` no longer runs for the sync. The repository setting "Allow GitHub
+  Actions to create and approve pull requests" is no longer needed.
+
 ## [0.12.0] - 2026-10-04
 
 This release adds type-level testing helpers and contains no breaking changes.
