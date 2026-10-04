@@ -7,6 +7,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.12.1] - 2026-10-04
+
+This release only changes the repository's release automation; the library code is unchanged.
+
 ### Changed
 
 - The `sync-dev.yml` workflow merges `main` into `dev` directly through the GitHub merges API
