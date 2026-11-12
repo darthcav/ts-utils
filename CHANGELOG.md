@@ -7,6 +7,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.12.3] - 2026-11-12
+
+This release updates dependencies; the library code is unchanged.
+
+### Changed
+
+- `@logtape/logtape` updated from 2.3.11 to 2.4.2.
+- `@biomejs/biome` (2.5.15 → 2.6.7), `@types/node` (26.6.4 → 26.6.6), and `prettier` (3.9.9 →
+  3.10.1) dev dependencies updated. `biome.json` references the Biome 2.6.7 schema, and the
+  `useImportsFirst` rule moved from `nursery` to `style`.
+
 ## [0.12.2] - 2026-10-04
 
 This release only updates the README; the library code is unchanged.
