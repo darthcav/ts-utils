@@ -7,9 +7,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-22
+
 This release adds subpath entry points, graceful shutdown in `main`, new type guards, and macOS
 support in `osRelease`. The root entry point keeps every export, so typed callers need no changes;
-the two behavior changes are listed under "Changed".
+the two behavior changes are listed under "Changed". With 1.0.0 the public API is stable: from now
+on, breaking changes only happen in a new major version.
 
 ### Added
 
