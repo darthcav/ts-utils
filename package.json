@@ -20,8 +20,7 @@
     "files": [
         "src",
         "!src/__tests__",
-        "dist",
-        "!dist/__tests__"
+        "dist"
     ],
     "dependencies": {
         "@logtape/logtape": "2.4.2"
@@ -42,7 +41,7 @@
     "scripts": {
         "\n===== Build =====": "",
         "clean": "node -e \"fs.rmSync('dist', { recursive: true, force: true })\"",
-        "build": "npm run clean && tsc",
+        "build": "npm run clean && tsc -p tsconfig.build.json",
         "prepare": "npm run build",
         "\n===== Typecheck =====": "",
         "typecheck": "tsc --noEmit",
