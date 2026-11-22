@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs"
 import { arch, release as kernelRelease, platform } from "node:os"
-import type { RuntimeObject } from "./types.ts"
+import type { RuntimeObject } from "../core/guards.ts"
 
 /**
  * OS release information with normalized fields and optional platform-specific extras.

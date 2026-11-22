@@ -2,7 +2,7 @@ import assert from "node:assert/strict"
 import process from "node:process"
 import { afterEach, beforeEach, mock, suite, test } from "node:test"
 import type { Logger } from "@logtape/logtape"
-import { type LauncherFunction, type MainOptions, main } from "../main.ts"
+import { type LauncherFunction, type MainOptions, main } from "../node/main.ts"
 import type { Assert } from "../type-testing/Assert.ts"
 import type { Equal } from "../type-testing/Equal.ts"
 

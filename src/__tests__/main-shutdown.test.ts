@@ -11,7 +11,7 @@ mock.module("@logtape/logtape", {
     namedExports: { dispose: disposeMock },
 })
 
-const { main } = await import("../main.ts")
+const { main } = await import("../node/main.ts")
 
 await suite("main (log flushing on shutdown)", () => {
     const noop = (): void => {}

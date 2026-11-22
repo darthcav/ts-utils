@@ -2,20 +2,20 @@ import assert from "node:assert/strict"
 import { suite, test } from "node:test"
 import { runInNewContext } from "node:vm"
 import {
-    type RuntimeObject as PublicRuntimeObject,
-    isRuntimeObject as publicIsRuntimeObject,
-    isString as publicIsString,
-} from "../index.ts"
-import type { Assert } from "../type-testing/Assert.ts"
-import type { Equal } from "../type-testing/Equal.ts"
-import {
     asRuntimeObject,
     asString,
     isRuntimeObject,
     isString,
     type RuntimeObject,
     toRuntimeObjectArray,
-} from "../types.ts"
+} from "../core/guards.ts"
+import {
+    type RuntimeObject as PublicRuntimeObject,
+    isRuntimeObject as publicIsRuntimeObject,
+    isString as publicIsString,
+} from "../index.ts"
+import type { Assert } from "../type-testing/Assert.ts"
+import type { Equal } from "../type-testing/Equal.ts"
 
 type _RuntimeObjectShape = Assert<Equal<RuntimeObject, Record<string, unknown>>>
 type _RuntimeObjectExport = Assert<Equal<PublicRuntimeObject, RuntimeObject>>
@@ -112,7 +112,7 @@ await suite("asRuntimeObject", () => {
     })
 
     test("returns undefined for module namespace objects", async () => {
-        const namespace = await import("../noop.ts")
+        const namespace = await import("../core/noop.ts")
         assert.equal(asRuntimeObject(namespace), undefined)
     })
 

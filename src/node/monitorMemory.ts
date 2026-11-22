@@ -1,6 +1,6 @@
 import { memoryUsage, uptime } from "node:process"
 import type { Logger } from "@logtape/logtape"
-import { millisecondsToString } from "./millisecondsToString.ts"
+import { millisecondsToString } from "../core/millisecondsToString.ts"
 
 /** Shortest allowed reporting interval: one minute. */
 const MIN_DELAY_MS = 60 * 1_000

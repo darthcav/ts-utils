@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { platform } from "node:os"
 import { suite, test } from "node:test"
-import { type OsRelease, osRelease } from "../osRelease.ts"
+import { type OsRelease, osRelease } from "../node/osRelease.ts"
 import type { Assert } from "../type-testing/Assert.ts"
 import type { Equal } from "../type-testing/Equal.ts"
 
