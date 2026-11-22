@@ -28,8 +28,21 @@ await suite("osRelease", () => {
         assert.equal(typeof result, "object")
     })
 
+    test("returns an object with the product version on macOS", () => {
+        if (platform() !== "darwin") {
+            return
+        }
+        const result = osRelease()
+        assert.ok(result !== null)
+        assert.equal(result.name, "macOS")
+        // A product version such as "15.1" or "26.0", never empty.
+        assert.match(result.version, /^\d+(\.\d+)+$/)
+        assert.equal(result["ProductVersion"], result.version)
+        assert.ok(typeof result["ProductBuildVersion"] === "string")
+    })
+
     test("returns null on unsupported platforms", () => {
-        if (platform() === "linux" || platform() === "win32") {
+        if (["linux", "darwin", "win32"].includes(platform())) {
             return
         }
         assert.equal(osRelease(), null)
@@ -72,7 +85,7 @@ await suite("osRelease", () => {
     })
 
     test("name, version, and arch are strings", () => {
-        if (platform() !== "linux" && platform() !== "win32") {
+        if (!["linux", "darwin", "win32"].includes(platform())) {
             return
         }
         const result = osRelease()

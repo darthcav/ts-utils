@@ -3,17 +3,24 @@ import { arch, release as kernelRelease, platform } from "node:os"
 import type { RuntimeObject } from "../core/guards.ts"
 
 /**
- * OS release information with normalized fields and optional platform-specific extras.
+ * OS release information: the normalized `name`, `version`, and `arch`, plus
+ * the platform's raw keys by string index:
  *
- * `name`, `version`, and `arch` are always present. On Linux, the keys read from
- * the os-release file (`/etc/os-release`, or `/usr/lib/os-release` as a
- * fallback; e.g. `ID`, `PRETTY_NAME`, `ID_LIKE`) are also accessible by string
- * index.
+ * - On Linux, the keys read from the os-release file (`/etc/os-release`, or
+ *   `/usr/lib/os-release` as a fallback; e.g. `ID`, `PRETTY_NAME`,
+ *   `ID_LIKE`).
+ * - On macOS, the string keys of
+ *   `/System/Library/CoreServices/SystemVersion.plist` (e.g. `ProductName`,
+ *   `ProductVersion`, `ProductBuildVersion`).
  */
 export type OsRelease = {
-    /** Human-readable OS name, e.g. `"Ubuntu"` or `"Windows 11"`. */
+    /** Human-readable OS name, e.g. `"Ubuntu"`, `"macOS"`, or `"Windows 11"`. */
     name: string
-    /** OS version string, e.g. `"24.04"` or `"10.0.22000"`. */
+    /**
+     * OS version string, e.g. `"24.04"`, `"15.1"`, or `"10.0.22000"`. On
+     * macOS it is the product version, not the Darwin kernel version (which
+     * `os.release()` returns).
+     */
     version: string
     /** Processor architecture as returned by `os.arch()`, e.g. `"x64"`. */
     arch: string
@@ -31,12 +38,28 @@ const OS_RELEASE_FILES = ["/etc/os-release", "/usr/lib/os-release"] as const
  */
 const OS_RELEASE_KEY = /^[A-Z][A-Z0-9_]*$/
 
-/**
- * Reads the first readable os-release file, or returns `null` when none can be
- * read (missing, unreadable, or not a regular file).
- */
-function readOsReleaseFile(): string | null {
-    for (const file of OS_RELEASE_FILES) {
+/** The macOS property list with the product name and version. */
+const MACOS_SYSTEM_VERSION_FILE =
+    "/System/Library/CoreServices/SystemVersion.plist"
+
+/** A `<key>…</key>` followed by a `<string>…</string>` value in a plist. */
+const PLIST_STRING_ENTRY = /<key>([^<]*)<\/key>\s*<string>([^<]*)<\/string>/g
+
+/** Valid plist keys to copy; this also rules out keys such as `__proto__`. */
+const PLIST_KEY = /^[A-Za-z][A-Za-z0-9_]*$/
+
+/** The predefined XML entities. */
+const XML_ENTITIES: Readonly<Record<string, string>> = {
+    amp: "&",
+    apos: "'",
+    gt: ">",
+    lt: "<",
+    quot: '"',
+}
+
+/** Reads the first readable file of `files`, or returns `null` if none is. */
+function readFirstFile(files: readonly string[]): string | null {
+    for (const file of files) {
         try {
             return readFileSync(file, "utf-8")
         } catch {
@@ -44,6 +67,46 @@ function readOsReleaseFile(): string | null {
         }
     }
     return null
+}
+
+/** Decodes the predefined and numeric character references of XML text. */
+function decodeXml(text: string): string {
+    return text.replace(
+        /&(?:#x([0-9a-fA-F]+)|#([0-9]+)|([a-z]+));/g,
+        (match, hex?: string, decimal?: string, name?: string) => {
+            if (hex !== undefined || decimal !== undefined) {
+                const codePoint = Number.parseInt(
+                    hex ?? decimal ?? "",
+                    hex === undefined ? 10 : 16,
+                )
+                return codePoint <= 0x10ffff
+                    ? String.fromCodePoint(codePoint)
+                    : match
+            }
+            return (
+                (name !== undefined && Object.hasOwn(XML_ENTITIES, name)
+                    ? XML_ENTITIES[name]
+                    : undefined) ?? match
+            )
+        },
+    )
+}
+
+/**
+ * Parses the `<string>` entries of an XML property list into a
+ * null-prototype record, skipping other value types and invalid keys.
+ */
+function parsePlistStrings(content: string): Record<string, string> {
+    const raw: Record<string, string> = Object.create(null)
+    for (const [, rawKey = "", value = ""] of content.matchAll(
+        PLIST_STRING_ENTRY,
+    )) {
+        const key = decodeXml(rawKey.trim())
+        if (PLIST_KEY.test(key)) {
+            raw[key] = decodeXml(value.trim())
+        }
+    }
+    return raw
 }
 
 /**
@@ -65,9 +128,8 @@ function unquote(value: string): string {
 }
 
 /**
- * Parses os-release content into a null-prototype record. Blank lines,
- * comments, lines without `=`, and keys that are not valid variable names are
- * skipped.
+ * Parses os-release content into a null-prototype record, skipping blank
+ * lines, comments, lines without `=`, and invalid keys.
  */
 function parseOsRelease(content: string): Record<string, string> {
     const raw: Record<string, string> = Object.create(null)
@@ -90,36 +152,38 @@ function parseOsRelease(content: string): Record<string, string> {
 }
 
 /**
- * Returns OS release information for the current platform, or `null` on
- * unsupported platforms or when no os-release file can be read on Linux.
+ * Returns OS release information for the current platform (Linux, macOS, or
+ * Windows). `arch` always comes from `os.arch()`.
  *
- * On Linux, the information is read from `/etc/os-release`, falling back to
- * `/usr/lib/os-release`. `name`, `version`, and `arch` are normalized from
- * `NAME`/`PRETTY_NAME`, `VERSION_ID`/`VERSION`, and `os.arch()` respectively.
- * All raw keys from the file are also present on the returned object. Comment
- * lines are ignored, single- and double-quoted values are unquoted (with
- * backslash escapes inside double quotes), and keys that are not upper-case
- * shell variable names are skipped.
+ * - On Linux, it reads `/etc/os-release`, falling back to
+ *   `/usr/lib/os-release`. `name` comes from `NAME` (or `PRETTY_NAME`) and
+ *   `version` from `VERSION_ID` (or `VERSION`). Values are unquoted as in a
+ *   shell; comments and keys that are not upper-case variable names are
+ *   skipped.
+ * - On macOS, it reads `/System/Library/CoreServices/SystemVersion.plist`.
+ *   `name` is `ProductName` (or `"macOS"`) and `version` is
+ *   `ProductVersion` (e.g. `"15.1"`), never the Darwin kernel version.
+ * - On Windows, `version` is the kernel version, and Windows 11 is told
+ *   apart from Windows 10 by NT build number (>= 22000).
  *
- * On Windows, distinguishes Windows 11 from Windows 10 by NT build number
- * (>= 22000 → Windows 11).
+ * On Linux and macOS, the raw keys of the file are also present.
  *
- * @returns An {@link OsRelease} object on supported platforms, or `null` when
- *   the platform is unsupported or no os-release file can be read on Linux.
+ * @returns An {@link OsRelease}, or `null` on unsupported platforms or when
+ *   the release file cannot be read.
  *
  * @example
  * ```ts
  * import { osRelease } from "@darthcav/ts-utils"
  *
  * const info = osRelease()
- * if (info) console.log(info.name)        // e.g. "Ubuntu" or "Windows 11"
+ * if (info) console.log(info.name)        // e.g. "Ubuntu", "macOS", or "Windows 11"
  * if (info) console.log(info.PRETTY_NAME) // e.g. "Ubuntu 24.04 LTS" (Linux only)
  * ```
  */
 export function osRelease(): OsRelease | null {
     const p = platform()
     if (p === "linux") {
-        const content = readOsReleaseFile()
+        const content = readFirstFile(OS_RELEASE_FILES)
         if (content === null) {
             return null
         }
@@ -128,6 +192,19 @@ export function osRelease(): OsRelease | null {
             ...raw,
             name: raw["NAME"] ?? raw["PRETTY_NAME"] ?? "",
             version: raw["VERSION_ID"] ?? raw["VERSION"] ?? "",
+            arch: arch(),
+        }
+    }
+    if (p === "darwin") {
+        const content = readFirstFile([MACOS_SYSTEM_VERSION_FILE])
+        if (content === null) {
+            return null
+        }
+        const raw = parsePlistStrings(content)
+        return {
+            ...raw,
+            name: raw["ProductName"] || "macOS",
+            version: raw["ProductVersion"] ?? "",
             arch: arch(),
         }
     }
