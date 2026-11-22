@@ -13,6 +13,9 @@ import * as typeTesting from "../type-testing/index.ts"
 
 // Type-only exports are erased at runtime, so they are pinned at type level.
 type _RootRuntimeObject = Assert<Equal<api.RuntimeObject, core.RuntimeObject>>
+type _RootTypeGuard = Assert<
+    Equal<api.TypeGuard<string>, core.TypeGuard<string>>
+>
 type _RootMainOptions = Assert<Equal<api.MainOptions, node.MainOptions>>
 type _RootLauncher = Assert<Equal<api.LauncherFunction, node.LauncherFunction>>
 type _RootOsRelease = Assert<Equal<api.OsRelease, node.OsRelease>>
@@ -30,8 +33,15 @@ type _RootIsUnknown = Assert<Equal<api.IsUnknown<1>, typeTesting.IsUnknown<1>>>
 const keysOf = (namespace: object): string[] => Object.keys(namespace).sort()
 
 const CORE_EXPORTS = [
+    "asArrayOf",
+    "asBoolean",
+    "asFiniteNumber",
     "asRuntimeObject",
     "asString",
+    "filterByGuard",
+    "isArrayOf",
+    "isBoolean",
+    "isFiniteNumber",
     "isRuntimeObject",
     "isString",
     "millisecondsToString",

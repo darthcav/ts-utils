@@ -12,11 +12,19 @@
  */
 
 export {
+    asArrayOf,
+    asBoolean,
+    asFiniteNumber,
     asRuntimeObject,
     asString,
+    filterByGuard,
+    isArrayOf,
+    isBoolean,
+    isFiniteNumber,
     isRuntimeObject,
     isString,
     type RuntimeObject,
+    type TypeGuard,
     toRuntimeObjectArray,
 } from "./guards.ts"
 export { millisecondsToString } from "./millisecondsToString.ts"
