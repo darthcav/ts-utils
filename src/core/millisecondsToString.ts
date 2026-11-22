@@ -1,8 +1,7 @@
 /**
- * Maximum number of {@link Intl.DurationFormat} instances retained in the
- * cache. Bounds memory growth when many distinct locales are requested (e.g.
- * a locale derived from untrusted input). When the limit is reached, the
- * least-recently-inserted entry is evicted.
+ * Maximum number of cached formatters, so many distinct locales (e.g. from
+ * untrusted input) cannot grow memory without bound. The oldest entry is
+ * evicted first.
  */
 const MAX_CACHED_FORMATTERS = 64
 

@@ -33,13 +33,11 @@ const MAX_DELAY_MS = 2_147_483_647
  *
  * @param logger - Logger whose `"monitorMemory"` child emits the memory
  *   reports.
- * @param hours - Interval between reports in hours. Must be a finite number
- *   between `1 / 60` (one minute) and about `596.5` (2³¹ − 1 ms, the longest
- *   delay `setInterval` supports). Defaults to `24`.
+ * @param hours - Interval between reports in hours, from `1 / 60` (one
+ *   minute) to about `596.5` (2³¹ − 1 ms). Defaults to `24`.
  * @returns A function that stops the monitoring. Calling it more than once is
  *   harmless.
- * @throws {RangeError} If `hours` is not finite or the resulting interval is
- *   shorter than one minute or longer than 2³¹ − 1 milliseconds.
+ * @throws {RangeError} If `hours` is not finite or out of that range.
  *
  * @example
  * ```ts
@@ -82,7 +80,6 @@ export function monitorMemory(logger: Logger, hours: number = 24): () => void {
             { rss, heapTotal, heapUsed, external },
         )
     }, delay)
-    // Monitoring alone must not keep the process alive.
     timer.unref()
 
     return () => clearInterval(timer)

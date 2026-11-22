@@ -1,6 +1,2 @@
-/**
- * A no-op function that does nothing and returns `void`.
- *
- * Useful as a placeholder callback, default handler, or in tests.
- */
+/** Does nothing. Useful as a placeholder callback, default handler, or in tests. */
 export const noop = (): void => {}
