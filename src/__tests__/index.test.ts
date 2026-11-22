@@ -18,6 +18,12 @@ type _RootTypeGuard = Assert<
 >
 type _RootMainOptions = Assert<Equal<api.MainOptions, node.MainOptions>>
 type _RootLauncher = Assert<Equal<api.LauncherFunction, node.LauncherFunction>>
+type _RootShutdownContext = Assert<
+    Equal<api.ShutdownContext, node.ShutdownContext>
+>
+type _RootShutdownFunction = Assert<
+    Equal<api.ShutdownFunction, node.ShutdownFunction>
+>
 type _RootOsRelease = Assert<Equal<api.OsRelease, node.OsRelease>>
 type _RootAssert = Assert<Equal<api.Assert<true>, typeTesting.Assert<true>>>
 type _RootEqual = Assert<Equal<api.Equal<1, 1>, typeTesting.Equal<1, 1>>>

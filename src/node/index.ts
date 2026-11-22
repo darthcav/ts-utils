@@ -14,6 +14,8 @@ export {
     type LauncherFunction,
     type MainOptions,
     main,
+    type ShutdownContext,
+    type ShutdownFunction,
 } from "./main.ts"
 export { monitorMemory } from "./monitorMemory.ts"
 export { type OsRelease, osRelease } from "./osRelease.ts"
