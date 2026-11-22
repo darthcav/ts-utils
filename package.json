@@ -15,6 +15,22 @@
         ".": {
             "types": "./dist/index.d.ts",
             "default": "./dist/index.js"
+        },
+        "./core": {
+            "types": "./dist/core/index.d.ts",
+            "default": "./dist/core/index.js"
+        },
+        "./node": {
+            "types": "./dist/node/index.d.ts",
+            "default": "./dist/node/index.js"
+        },
+        "./loggers": {
+            "types": "./dist/loggers/index.d.ts",
+            "default": "./dist/loggers/index.js"
+        },
+        "./type-testing": {
+            "types": "./dist/type-testing/index.d.ts",
+            "default": "./dist/type-testing/index.js"
         }
     },
     "files": [
