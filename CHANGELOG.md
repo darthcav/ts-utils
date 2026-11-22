@@ -45,6 +45,8 @@ on, breaking changes only happen in a new major version.
   and `src/types.ts` is now `src/core/guards.ts`. The `exports` map never exposed these files, so
   consumers are not affected.
 - TypeDoc documents each entry point as its own module.
+- `@biomejs/biome` dev dependency updated from 2.6.7 to 2.6.8; `biome.json` references the 2.6.8
+  schema.
 - The agent instructions from `CLAUDE.md`, `.github/CLAUDE.md`, and
   `.github/copilot-instructions.md` are merged into `AGENTS.md`, which every coding agent reads;
   `CLAUDE.md` and `.github/copilot-instructions.md` only point to it. `AGENTS.md` adds an `exports`
