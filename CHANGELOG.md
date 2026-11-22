@@ -7,6 +7,46 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+This release adds subpath entry points, graceful shutdown in `main`, new type guards, and macOS
+support in `osRelease`. The root entry point keeps every export, so typed callers need no changes;
+the two behavior changes are listed under "Changed".
+
+### Added
+
+- Subpath entry points, each with its own declarations: `@darthcav/ts-utils/core` (portable helpers
+  that import no Node.js built-ins or packages), `@darthcav/ts-utils/node` (`main`, `monitorMemory`,
+  `osRelease`), `@darthcav/ts-utils/loggers` (`getConsoleLogger`, `getDummyLogger`), and
+  `@darthcav/ts-utils/type-testing` (types only). The root entry point re-exports all of them.
+- `main` `shutdown` option: application cleanup, run once on `SIGINT`/`SIGTERM` and on fatal
+  failures, after the memory monitoring stops and before the logs are flushed. It receives a
+  `ShutdownContext` (`{ reason: "signal", signal }` or `{ reason: "error", source, error }`) and is
+  bounded by the new `shutdownTimeoutMs` option (default 10 seconds). If it fails or times out, the
+  process exits with status `1`, also after a signal. New exported types: `ShutdownContext` and
+  `ShutdownFunction`.
+- `main` `flushLogs` option: the log flush run before exiting, LogTape's `dispose` by default. Pass
+  the `dispose` of the application's own LogTape copy, or `noop` to skip flushing.
+- Type guards and narrowing helpers: `isBoolean`/`asBoolean`, `isFiniteNumber`/`asFiniteNumber`
+  (rejecting `NaN` and both infinities), `isArrayOf`/`asArrayOf` (validates every element), and
+  `filterByGuard` (keeps the elements that pass a guard), plus the `TypeGuard<T>` type.
+
+### Changed
+
+- `osRelease()` supports macOS, where it returned `null` before: it reports the product name and
+  version (e.g. `"macOS"`, `"15.1"`), never the Darwin kernel version, plus the string keys of
+  `/System/Library/CoreServices/SystemVersion.plist`.
+- `main` throws a `TypeError`, before registering anything, when `launcher`, `shutdown`, or
+  `flushLogs` is not a function. A non-function `launcher` from an untyped caller used to be logged
+  as a launcher failure that exited the process with status `1`.
+- `dist/` no longer contains the compiled tests: the build uses `tsconfig.build.json`.
+- The sources are grouped by domain (`src/core/`, `src/node/`, `src/loggers/`, `src/type-testing/`),
+  and `src/types.ts` is now `src/core/guards.ts`. The `exports` map never exposed these files, so
+  consumers are not affected.
+- TypeDoc documents each entry point as its own module.
+- The agent instructions from `CLAUDE.md`, `.github/CLAUDE.md`, and
+  `.github/copilot-instructions.md` are merged into `AGENTS.md`, which every coding agent reads;
+  `CLAUDE.md` and `.github/copilot-instructions.md` only point to it. `AGENTS.md` adds an `exports`
+  check to run before every commit.
+
 ## [0.12.3] - 2026-11-12
 
 This release updates dependencies; the library code is unchanged.

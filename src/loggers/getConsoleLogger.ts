@@ -17,13 +17,9 @@ const FORMATTER_OPTIONS: TextFormatterOptions = {
 }
 
 /**
- * Decides whether console output should use ANSI colors.
- *
- * `FORCE_COLOR` wins when set (`"0"` or `"false"` disable colors, any other
- * value enables them). Otherwise colors are used only when both stdout and
- * stderr are terminals that support them, since the console sink writes
- * warnings and errors to stderr. `hasColors()` also honors `NO_COLOR`,
- * `NODE_DISABLE_COLORS`, and `TERM=dumb`.
+ * Whether console output should use ANSI colors. `FORCE_COLOR` wins when set;
+ * otherwise both stdout and stderr must support colors, since the console
+ * sink writes warnings and errors to stderr.
  */
 function useColors(): boolean {
     const force = process.env["FORCE_COLOR"]
@@ -36,22 +32,21 @@ function useColors(): boolean {
 }
 
 /**
- * Configures logging and returns a {@link Logger} for the given category name.
+ * Configures LogTape globally and returns a {@link Logger} for the given
+ * category.
  *
- * Records at or above `lowestLevel` are written to the console with RFC 3339
- * timestamps and full level names. The internal `logtape/meta` logger is
+ * Records at or above `lowestLevel` go to the console with RFC 3339
+ * timestamps and full level names; the internal `logtape/meta` logger is
  * silenced.
  *
- * ANSI colors are used only when both stdout and stderr are terminals that
- * support them (respecting `NO_COLOR`, `NODE_DISABLE_COLORS`, and `TERM=dumb`),
- * so output redirected to files or pipes stays free of escape codes. Set
- * `FORCE_COLOR` to override: `"0"` or `"false"` disables colors, any other
- * value enables them. The decision is made when this function is called.
+ * ANSI colors are used only when both stdout and stderr are color terminals
+ * (respecting `NO_COLOR`, `NODE_DISABLE_COLORS`, and `TERM=dumb`), so
+ * redirected output has no escape codes. `FORCE_COLOR` overrides this: `"0"`
+ * or `"false"` disables colors, any other value enables them.
  *
- * Logging is configured with `reset: true`, so this function is safe to call
- * more than once: each call reconfigures logtape from scratch and the most
- * recent call wins. (Without it, logtape throws because logging is already
- * configured.)
+ * Each call replaces the whole global LogTape configuration, so the latest
+ * call wins. Applications that configure LogTape themselves should use
+ * LogTape's `getLogger` instead.
  *
  * @param name - The top-level category name (typically the application name).
  * @param lowestLevel - The minimum log level to output. Defaults to `"info"`.
