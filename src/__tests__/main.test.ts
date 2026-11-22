@@ -2,12 +2,35 @@ import assert from "node:assert/strict"
 import process from "node:process"
 import { afterEach, beforeEach, mock, suite, test } from "node:test"
 import type { Logger } from "@logtape/logtape"
-import { type LauncherFunction, type MainOptions, main } from "../main.ts"
+import {
+    type LauncherFunction,
+    type MainOptions,
+    main,
+    type ShutdownContext,
+    type ShutdownFunction,
+} from "../node/main.ts"
 import type { Assert } from "../type-testing/Assert.ts"
 import type { Equal } from "../type-testing/Equal.ts"
 
 type _LauncherFunctionShape = Assert<
     Equal<LauncherFunction, () => void | Promise<void>>
+>
+type _ShutdownFunctionShape = Assert<
+    Equal<ShutdownFunction, (context: ShutdownContext) => void | Promise<void>>
+>
+type _ShutdownContextShape = Assert<
+    Equal<
+        ShutdownContext,
+        | { readonly reason: "signal"; readonly signal: "SIGINT" | "SIGTERM" }
+        | {
+              readonly reason: "error"
+              readonly source:
+                  | "uncaughtException"
+                  | "unhandledRejection"
+                  | "launcher"
+              readonly error: unknown
+          }
+    >
 >
 type _MainReturnType = Assert<Equal<ReturnType<typeof main>, () => void>>
 type _MainOptionsShape = Assert<
@@ -15,8 +38,11 @@ type _MainOptionsShape = Assert<
         MainOptions,
         {
             launcher?: LauncherFunction
+            shutdown?: ShutdownFunction
+            shutdownTimeoutMs?: number
             monitorMemoryHours?: number
             defaultInterruptionHandler?: boolean
+            flushLogs?: () => void | Promise<void>
             flushTimeoutMs?: number
         }
     >
@@ -47,10 +73,8 @@ await suite("main", () => {
     } as unknown as Logger
     const logger = { getChild: () => childLogger } as unknown as Logger
 
-    // Log calls use logtape's tagged-template form, so a mocked call receives
-    // the template-string parts as `arguments[0]` and the interpolated values
-    // as the remaining arguments. Reconstruct the rendered message for
-    // assertions.
+    // Rebuilds the message of a tagged-template log call: the template parts
+    // are `arguments[0]` and the interpolated values follow.
     const render = (call: { arguments: readonly unknown[] }): string => {
         const [template, ...values] = call.arguments
         if (Array.isArray(template)) {
@@ -298,11 +322,8 @@ await suite("main", () => {
         const error = new Error('Unexpected token in JSON: {"key":"value"}')
         await handler(error, "uncaughtException")
 
-        // logtape parses '{...}' in a plain string argument as a placeholder and
-        // replaces it with null. The tagged-template form passes the message
-        // parts as an array and the interpolated value separately, so brace
-        // content survives. Assert both: the call uses the array (template)
-        // shape, and the braces are carried by the interpolated value.
+        // logtape would replace '{...}' in a plain string with null; the
+        // tagged-template form keeps the braces in the interpolated value.
         const errorCall = logMock.mock.calls.find(
             (c) =>
                 Array.isArray(c.arguments[0]) &&
