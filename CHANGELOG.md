@@ -42,6 +42,10 @@ the two behavior changes are listed under "Changed".
   and `src/types.ts` is now `src/core/guards.ts`. The `exports` map never exposed these files, so
   consumers are not affected.
 - TypeDoc documents each entry point as its own module.
+- The agent instructions from `CLAUDE.md`, `.github/CLAUDE.md`, and
+  `.github/copilot-instructions.md` are merged into `AGENTS.md`, which every coding agent reads;
+  `CLAUDE.md` and `.github/copilot-instructions.md` only point to it. `AGENTS.md` adds an `exports`
+  check to run before every commit.
 
 ## [0.12.3] - 2026-11-12
 
