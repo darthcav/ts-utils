@@ -1,7 +1,8 @@
 /**
  * Portable helpers: type guards and narrowing helpers, duration formatting,
  * and `noop`. They import no Node.js built-ins or packages, so they run in any
- * ES2025 runtime (`millisecondsToString` needs `Intl.DurationFormat`).
+ * ES2025 runtime (`millisecondsToString` also needs `Intl.DurationFormat` and
+ * `Temporal`).
  *
  * @example
  * ```ts
