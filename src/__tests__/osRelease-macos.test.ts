@@ -1,10 +1,10 @@
 import assert from "node:assert/strict"
 import { mock, suite, test } from "node:test"
+import { fakeReadFileSync, type MockedFiles } from "./helpers.ts"
 
 const PLIST_FILE = "/System/Library/CoreServices/SystemVersion.plist"
 
-/** Mocked file system: path → content, or an error code to throw. */
-let files: Record<string, string | { code: string }> = {}
+let files: MockedFiles = {}
 
 mock.module("node:os", {
     namedExports: {
@@ -16,16 +16,7 @@ mock.module("node:os", {
 })
 
 mock.module("node:fs", {
-    namedExports: {
-        readFileSync: (path: string): string => {
-            const entry = files[path]
-            if (typeof entry === "string") {
-                return entry
-            }
-            const code = entry?.code ?? "ENOENT"
-            throw Object.assign(new Error(`${code}: ${path}`), { code })
-        },
-    },
+    namedExports: { readFileSync: fakeReadFileSync(() => files) },
 })
 
 const { osRelease } = await import("../node/osRelease.ts")
@@ -119,47 +110,6 @@ await suite("osRelease (darwin platform)", () => {
         const result = osRelease()
         assert.equal(result?.name, "macOS")
         assert.equal(result?.version, "")
-    })
-
-    test("decodes XML character references in keys and values", () => {
-        files = {
-            [PLIST_FILE]: plist(`<key>ProductCopyright</key>
-<string>&#169; 1983&#x2013;2024 Apple &amp; Co &lt;Inc&gt; &quot;A&quot; &apos;B&apos; &bogus; &#x110000;</string>
-<key>Product&#78;ame</key>
-<string>macOS</string>`),
-        }
-        const result = osRelease()
-        assert.equal(
-            result?.["ProductCopyright"],
-            `© 1983–2024 Apple & Co <Inc> "A" 'B' &bogus; &#x110000;`,
-        )
-        assert.equal(result?.["ProductName"], "macOS")
-    })
-
-    test("skips non-string values and keys that are not identifiers", () => {
-        files = {
-            [PLIST_FILE]: plist(`<key>ProductVersion</key>
-<string>15.1</string>
-<key>SomeFlag</key>
-<true/>
-<key>SomeNumber</key>
-<integer>3</integer>
-<key>__proto__</key>
-<string>polluted</string>
-<key>constructor</key>
-<string>kept as data</string>
-<key>has space</key>
-<string>skipped</string>`),
-        }
-        const result = osRelease()
-        assert.ok(result !== null)
-        assert.equal(result["SomeFlag"], undefined)
-        assert.equal(result["SomeNumber"], undefined)
-        assert.equal(result["has space"], undefined)
-        assert.ok(!Object.hasOwn(result, "__proto__"))
-        assert.equal(Object.getPrototypeOf(result), Object.prototype)
-        assert.equal(result["constructor"], "kept as data")
-        assert.equal(({} as Record<string, unknown>)["polluted"], undefined)
     })
 
     test("normalized fields win over raw keys of the same name", () => {

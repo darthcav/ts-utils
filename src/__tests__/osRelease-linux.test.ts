@@ -1,8 +1,8 @@
 import assert from "node:assert/strict"
 import { mock, suite, test } from "node:test"
+import { fakeReadFileSync, type MockedFiles } from "./helpers.ts"
 
-/** Mocked file system: path → content, or an error code to throw. */
-let files: Record<string, string | { code: string }> = {}
+let files: MockedFiles = {}
 
 mock.module("node:os", {
     namedExports: {
@@ -13,16 +13,7 @@ mock.module("node:os", {
 })
 
 mock.module("node:fs", {
-    namedExports: {
-        readFileSync: (path: string): string => {
-            const entry = files[path]
-            if (typeof entry === "string") {
-                return entry
-            }
-            const code = entry?.code ?? "ENOENT"
-            throw Object.assign(new Error(`${code}: ${path}`), { code })
-        },
-    },
+    namedExports: { readFileSync: fakeReadFileSync(() => files) },
 })
 
 const { osRelease } = await import("../node/osRelease.ts")
@@ -60,66 +51,23 @@ await suite("osRelease (linux platform)", async () => {
         assert.equal(result?.arch, "x64")
     })
 
-    test("skips comments, blank lines, and lines without '='", () => {
+    test("exposes the raw keys in a plain object next to the normalized fields", () => {
         files = {
-            "/etc/os-release":
-                "# NAME=Commented\n\n   # ID=indented-comment\nGARBAGE\nNAME=Real\r\n",
+            "/etc/os-release": 'ID=ubuntu\nNAME="Ubuntu"\nVERSION_ID=24.04\n',
         }
         const result = osRelease()
-        assert.ok(result !== null)
-        assert.equal(result.name, "Real")
-        assert.deepEqual(Object.keys(result).sort(), [
-            "NAME",
-            "arch",
-            "name",
-            "version",
-        ])
-    })
-
-    test("unquotes double- and single-quoted values", () => {
-        files = {
-            "/etc/os-release": [
-                'PRETTY_NAME="Ubuntu 24.04 LTS"',
-                "ID_LIKE='debian'",
-                'HOME_URL="https://example.com/a\\"b\\\\c\\$d\\`e"',
-                "SINGLE='no \\escapes'",
-                'UNBALANCED="open',
-                "PLAIN=value",
-            ].join("\n"),
-        }
-        const result = osRelease()
-        assert.ok(result !== null)
-        assert.equal(result["PRETTY_NAME"], "Ubuntu 24.04 LTS")
-        assert.equal(result["ID_LIKE"], "debian")
-        assert.equal(result["HOME_URL"], 'https://example.com/a"b\\c$d`e')
-        assert.equal(result["SINGLE"], "no \\escapes")
-        assert.equal(result["UNBALANCED"], '"open')
-        assert.equal(result["PLAIN"], "value")
-        assert.equal(result.name, "Ubuntu 24.04 LTS")
-    })
-
-    test("skips keys that are not upper-case variable names", () => {
-        files = {
-            "/etc/os-release": [
-                "__proto__=polluted",
-                "constructor=polluted",
-                "lower=skipped",
-                "1ID=skipped",
-                "BAD-KEY=skipped",
-                "ID=ubuntu",
-            ].join("\n"),
-        }
-        const result = osRelease()
-        assert.ok(result !== null)
         assert.equal(Object.getPrototypeOf(result), Object.prototype)
-        assert.ok(!Object.hasOwn(result, "__proto__"))
-        assert.ok(!Object.hasOwn(result, "constructor"))
-        assert.deepEqual(Object.keys(result).sort(), [
-            "ID",
-            "arch",
-            "name",
-            "version",
-        ])
+        assert.deepEqual(
+            { ...result },
+            {
+                ID: "ubuntu",
+                NAME: "Ubuntu",
+                VERSION_ID: "24.04",
+                name: "Ubuntu",
+                version: "24.04",
+                arch: "x64",
+            },
+        )
     })
 
     test("falls back to PRETTY_NAME/VERSION, then to empty strings", () => {

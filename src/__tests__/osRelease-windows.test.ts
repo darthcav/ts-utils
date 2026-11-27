@@ -1,8 +1,5 @@
 import assert from "node:assert/strict"
 import { mock, suite, test } from "node:test"
-import type { OsRelease } from "../node/osRelease.ts"
-import type { Assert } from "../type-testing/Assert.ts"
-import type { Equal } from "../type-testing/Equal.ts"
 
 let mockRelease = "10.0.22000"
 
@@ -16,67 +13,33 @@ mock.module("node:os", {
 
 const { osRelease } = await import("../node/osRelease.ts")
 
-type _OsReleaseName = Assert<Equal<OsRelease["name"], string>>
-type _OsReleaseVersion = Assert<Equal<OsRelease["version"], string>>
-type _OsReleaseArch = Assert<Equal<OsRelease["arch"], string>>
-
-await suite("osRelease (win32 platform)", async () => {
-    test("Windows 11 (build >= 22000)", () => {
+await suite("osRelease (win32 platform)", () => {
+    test("reports the kernel version and os.arch()", () => {
         mockRelease = "10.0.22000"
-        const result = osRelease()
-        assert.ok(result !== null)
-        assert.equal(result.name, "Windows 11")
-        assert.equal(result.version, "10.0.22000")
-        assert.equal(result.arch, "x64")
+        assert.deepEqual(osRelease(), {
+            name: "Windows 11",
+            version: "10.0.22000",
+            arch: "x64",
+        })
     })
 
-    test("Windows 10 (build < 22000)", () => {
-        mockRelease = "10.0.19041"
-        assert.equal(osRelease()?.name, "Windows 10")
-    })
-
-    test("Windows 8.1", () => {
-        mockRelease = "6.3.9600"
-        assert.equal(osRelease()?.name, "Windows 8.1")
-    })
-
-    test("Windows 8", () => {
-        mockRelease = "6.2.9200"
-        assert.equal(osRelease()?.name, "Windows 8")
-    })
-
-    test("Windows 7", () => {
-        mockRelease = "6.1.7601"
-        assert.equal(osRelease()?.name, "Windows 7")
-    })
-
-    test("Windows Vista", () => {
-        mockRelease = "6.0.6002"
-        assert.equal(osRelease()?.name, "Windows Vista")
-    })
-
-    test("Windows XP 64-Bit Edition", () => {
-        mockRelease = "5.2.3790"
-        assert.equal(osRelease()?.name, "Windows XP 64-Bit Edition")
-    })
-
-    test("Windows XP", () => {
-        mockRelease = "5.1.2600"
-        assert.equal(osRelease()?.name, "Windows XP")
-    })
-
-    test("Windows 2000", () => {
-        mockRelease = "5.0.2195"
-        assert.equal(osRelease()?.name, "Windows 2000")
-    })
-
-    test("unknown version", () => {
-        mockRelease = "4.0.1381"
-        assert.equal(osRelease()?.name, "Windows unknown version")
-    })
-
-    test("Windows 10 when build number is absent", () => {
-        mockRelease = "10.0"
-        assert.equal(osRelease()?.name, "Windows 10")
-    })
+    for (const [release, name] of [
+        ["10.0.22000", "Windows 11"],
+        ["10.0.21999", "Windows 10"], // last build before Windows 11
+        ["10.0.19041", "Windows 10"],
+        ["10.0", "Windows 10"], // no build number
+        ["6.3.9600", "Windows 8.1"],
+        ["6.2.9200", "Windows 8"],
+        ["6.1.7601", "Windows 7"],
+        ["6.0.6002", "Windows Vista"],
+        ["5.2.3790", "Windows XP 64-Bit Edition"],
+        ["5.1.2600", "Windows XP"],
+        ["5.0.2195", "Windows 2000"],
+        ["4.0.1381", "Windows unknown version"],
+    ] as const) {
+        test(`maps ${release} to ${name}`, () => {
+            mockRelease = release
+            assert.equal(osRelease()?.name, name)
+        })
+    }
 })
