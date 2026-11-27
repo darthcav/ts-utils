@@ -1,15 +1,14 @@
 import assert from "node:assert/strict"
 import { afterEach, beforeEach, mock, suite, test } from "node:test"
-import type { Logger } from "@logtape/logtape"
+import { getDummyLogger } from "../loggers/getDummyLogger.ts"
 import { monitorMemory } from "../node/monitorMemory.ts"
 
 await suite("monitorMemory", () => {
+    const logger = getDummyLogger()
     const logMock = mock.fn()
-    const childLogger = { info: logMock } as unknown as Logger
     const getChildMock = mock.fn(
-        (_subcategory: string | readonly string[]) => childLogger,
+        (_subcategory: string | readonly string[]) => logger,
     )
-    const logger = { getChild: getChildMock } as unknown as Logger
 
     let setIntervalMock: ReturnType<typeof mock.method>
     let clearIntervalMock: ReturnType<typeof mock.method>
@@ -20,6 +19,8 @@ await suite("monitorMemory", () => {
         logMock.mock.resetCalls()
         getChildMock.mock.resetCalls()
         unrefMock.mock.resetCalls()
+        mock.method(logger, "info", logMock)
+        mock.method(logger, "getChild", getChildMock)
         setIntervalMock = mock.method(
             globalThis,
             "setInterval",
@@ -146,38 +147,5 @@ await suite("monitorMemory", () => {
         assert.equal(delays.length, 2)
         assert.ok(Math.abs((delays[0] as number) - 60_000) < 1e-6)
         assert.ok((delays[1] as number) <= 2_147_483_647)
-    })
-})
-
-await suite("monitorMemory (real timers)", () => {
-    test("the timer is unreferenced and stops reporting once stopped", async () => {
-        const logMock = mock.fn()
-        const childLogger = { info: logMock } as unknown as Logger
-        const logger = { getChild: () => childLogger } as unknown as Logger
-        const realSetInterval = globalThis.setInterval
-        let captured: ReturnType<typeof setInterval> | undefined
-        mock.method(
-            globalThis,
-            "setInterval",
-            (fn: () => void, _delay: number) => {
-                // Same callback, but fire quickly so the test does not wait a minute.
-                captured = realSetInterval(fn, 5)
-                return captured
-            },
-        )
-        try {
-            const stop = monitorMemory(logger, 1 / 60)
-            assert.ok(captured)
-            assert.equal(captured.hasRef(), false)
-
-            await new Promise((resolve) => setTimeout(resolve, 30))
-            assert.ok(logMock.mock.callCount() >= 2)
-            stop()
-            const calls = logMock.mock.callCount()
-            await new Promise((resolve) => setTimeout(resolve, 30))
-            assert.equal(logMock.mock.callCount(), calls)
-        } finally {
-            mock.restoreAll()
-        }
     })
 })

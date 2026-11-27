@@ -226,14 +226,15 @@ unsupported platforms or when the release file cannot be read. The normalized fi
   number.
 
 ```ts
-import { osRelease } from "@darthcav/ts-utils"
+import { asString, osRelease } from "@darthcav/ts-utils"
 
 const info = osRelease()
 if (info) {
-    console.log(info.name)        // e.g. "Ubuntu", "macOS", or "Windows 11"
-    console.log(info.version)     // e.g. "24.04", "15.1", or "10.0.22000"
-    console.log(info.arch)        // e.g. "x64"
-    console.log(info.PRETTY_NAME) // e.g. "Ubuntu 24.04 LTS" (Linux only)
+    console.log(info.name)    // e.g. "Ubuntu", "macOS", or "Windows 11"
+    console.log(info.version) // e.g. "24.04", "15.1", or "10.0.22000"
+    console.log(info.arch)    // e.g. "x64"
+    // Raw keys are `unknown`; narrow them before use.
+    const prettyName = asString(info["PRETTY_NAME"]) // e.g. "Ubuntu 24.04 LTS" (Linux only)
 }
 ```
 
@@ -294,8 +295,8 @@ Optional settings are passed as a `MainOptions` object:
 
 An out-of-range `monitorMemoryHours` (negative, `NaN`, or outside `monitorMemory`'s range),
 `shutdownTimeoutMs`, or `flushTimeoutMs` throws a `RangeError`, and a `launcher`, `shutdown`, or
-`flushLogs` that is not a function throws a `TypeError`, before any handler is registered. If the
-launcher throws or its promise rejects, the failure is logged and the shutdown sequence runs.
+`flushLogs` that is not a function throws a `TypeError`, before anything is logged or registered. If
+the launcher throws or its promise rejects, the failure is logged and the shutdown sequence runs.
 
 The default `flushLogs` disposes the sinks configured through the `@logtape/logtape` copy this
 package uses. If the application configures another copy (e.g. a different LogTape version, whose
@@ -419,9 +420,11 @@ src/
     main.ts                  #   Process bootstrap and shutdown (main)
     monitorMemory.ts         #   Periodic memory reporting
     osRelease.ts             #   OS release information
+    releaseParsers.ts        #   os-release and plist parsers (internal)
+    delays.ts                #   Timer delay limit and range check (internal)
   loggers/                   # @darthcav/ts-utils/loggers (LogTape helpers)
   type-testing/              # @darthcav/ts-utils/type-testing (type-level assertions)
-  __tests__/                 # Test files (and child-process fixtures)
+  __tests__/                 # Test files, shared helpers, and child-process fixtures
 dist/                        # Compiled output (generated)
 public/                      # Documentation output (generated)
 ```

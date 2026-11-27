@@ -16,7 +16,7 @@ jobs:
     strategy:
       matrix:
         node-version: [ 26.x ]
-    name: Linting with Node.js ${{ matrix.node-version }}
+    name: Linting, type-checking, and docs with Node.js ${{ matrix.node-version }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -27,6 +27,8 @@ jobs:
           cache: npm
       - run: npm ci --ignore-scripts
       - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run doc
   test:
     runs-on: ${{ matrix.os }}
     strategy:

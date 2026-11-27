@@ -1,6 +1,8 @@
 import assert from "node:assert/strict"
 import { spawn } from "node:child_process"
+import { once } from "node:events"
 import process from "node:process"
+import { createInterface } from "node:readline"
 import { suite, test } from "node:test"
 import { fileURLToPath } from "node:url"
 
@@ -24,56 +26,43 @@ type RunResult = {
  * Runs the fixture application in `mode`. `onReady` signals are sent once it
  * reports `ready`, and `onShutdown` signals once its shutdown function starts.
  */
-function run(
+async function run(
     mode: string,
     signals: { onReady?: NodeJS.Signals; onShutdown?: NodeJS.Signals } = {},
 ): Promise<RunResult> {
-    return new Promise((resolve, reject) => {
-        const started = performance.now()
-        const child = spawn(process.execPath, [FIXTURE, mode], {
-            stdio: ["ignore", "pipe", "inherit"],
-        })
-        const guard = setTimeout(() => {
-            child.kill("SIGKILL")
-            reject(new Error(`fixture "${mode}" did not exit in time`))
-        }, RUN_TIMEOUT_MS)
-        const lines: string[] = []
-        let buffered = ""
-        child.stdout.setEncoding("utf-8")
-        child.stdout.on("data", (chunk: string) => {
-            buffered += chunk
-            let newline = buffered.indexOf("\n")
-            while (newline !== -1) {
-                const line = buffered.slice(0, newline).trim()
-                buffered = buffered.slice(newline + 1)
-                lines.push(line)
-                if (line === "ready" && signals.onReady) {
-                    child.kill(signals.onReady)
-                }
-                if (
-                    line.startsWith("shutdown:") &&
-                    line !== "shutdown:done" &&
-                    signals.onShutdown
-                ) {
-                    child.kill(signals.onShutdown)
-                }
-                newline = buffered.indexOf("\n")
-            }
-        })
-        child.on("error", reject)
-        child.on("exit", (code, signal) => {
-            clearTimeout(guard)
-            resolve({
-                code,
-                signal,
-                lines,
-                elapsedMs: performance.now() - started,
-            })
-        })
+    const started = performance.now()
+    const child = spawn(process.execPath, [FIXTURE, mode], {
+        stdio: ["ignore", "pipe", "inherit"],
+        // Kills a hanging child; `once` below then rejects with an AbortError.
+        signal: AbortSignal.timeout(RUN_TIMEOUT_MS),
+        killSignal: "SIGKILL",
     })
+    const lines: string[] = []
+    const readLines = async (): Promise<void> => {
+        for await (const line of createInterface({ input: child.stdout })) {
+            lines.push(line)
+            if (line === "ready" && signals.onReady) {
+                child.kill(signals.onReady)
+            }
+            if (
+                line.startsWith("shutdown:") &&
+                line !== "shutdown:done" &&
+                signals.onShutdown
+            ) {
+                child.kill(signals.onShutdown)
+            }
+        }
+    }
+    // "close", unlike "exit", fires only once stdout has been fully read.
+    const [[code, signal]] = await Promise.all([
+        once(child, "close"),
+        readLines(),
+    ])
+    return { code, signal, lines, elapsedMs: performance.now() - started }
 }
 
-await suite("main (real process exit)", () => {
+// The fixture runs are independent child processes, so they run in parallel.
+await suite("main (real process exit)", { concurrency: true }, () => {
     for (const signal of ["SIGINT", "SIGTERM"] as const) {
         test(`runs the shutdown function on ${signal}, then ends killed by ${signal}`, {
             skip: POSIX_ONLY,

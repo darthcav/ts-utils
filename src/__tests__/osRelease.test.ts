@@ -9,98 +9,56 @@ type _OsReleaseName = Assert<Equal<OsRelease["name"], string>>
 type _OsReleaseVersion = Assert<Equal<OsRelease["version"], string>>
 type _OsReleaseArch = Assert<Equal<OsRelease["arch"], string>>
 
+const os = platform()
+
+/** Skip reason for a test that needs a real `p` system, or `false` to run it. */
+const onlyOn = (p: NodeJS.Platform): string | false => os !== p && `${p} only`
+
+// These tests read the real release information of the machine they run on;
+// the osRelease-*.test.ts files cover every platform with mocked files.
 await suite("osRelease", () => {
-    test("returns an object on Linux", () => {
-        if (platform() !== "linux") {
-            return
-        }
+    test("on Linux: returns the normalized fields and the raw os-release keys, unquoted", {
+        skip: onlyOn("linux"),
+    }, () => {
         const result = osRelease()
-        assert.notEqual(result, null)
-        assert.equal(typeof result, "object")
+        assert.ok(result !== null)
+        assert.ok("ID" in result)
+        assert.ok("NAME" in result)
+        for (const value of Object.values(result)) {
+            assert.equal(typeof value, "string")
+            assert.ok(
+                !String(value).startsWith('"') && !String(value).endsWith('"'),
+                String(value),
+            )
+        }
     })
 
-    test("returns an object on Windows", () => {
-        if (platform() !== "win32") {
-            return
-        }
-        const result = osRelease()
-        assert.notEqual(result, null)
-        assert.equal(typeof result, "object")
-    })
-
-    test("returns an object with the product version on macOS", () => {
-        if (platform() !== "darwin") {
-            return
-        }
+    test("on macOS: reports the product version, not the Darwin version", {
+        skip: onlyOn("darwin"),
+    }, () => {
         const result = osRelease()
         assert.ok(result !== null)
         assert.equal(result.name, "macOS")
         // A product version such as "15.1" or "26.0", never empty.
         assert.match(result.version, /^\d+(\.\d+)+$/)
         assert.equal(result["ProductVersion"], result.version)
-        assert.ok(typeof result["ProductBuildVersion"] === "string")
+        assert.equal(typeof result["ProductBuildVersion"], "string")
+        assert.equal(typeof result.arch, "string")
     })
 
-    test("returns null on unsupported platforms", () => {
-        if (["linux", "darwin", "win32"].includes(platform())) {
-            return
-        }
-        assert.equal(osRelease(), null)
-    })
-
-    test("all values are strings on Linux", () => {
-        if (platform() !== "linux") {
-            return
-        }
+    test("on Windows: reports a Windows product name", {
+        skip: onlyOn("win32"),
+    }, () => {
         const result = osRelease()
         assert.ok(result !== null)
-        for (const value of Object.values(result)) {
-            assert.equal(typeof value, "string")
-        }
-    })
-
-    test("contains expected raw keys on Linux", () => {
-        if (platform() !== "linux") {
-            return
-        }
-        const result = osRelease()
-        assert.ok(result !== null)
-        assert.ok("ID" in result)
-        assert.ok("NAME" in result)
-    })
-
-    test("values do not contain surrounding quotes on Linux", () => {
-        if (platform() !== "linux") {
-            return
-        }
-        const result = osRelease()
-        assert.ok(result !== null)
-        for (const value of Object.values(result)) {
-            if (typeof value !== "string") {
-                continue
-            }
-            assert.ok(!value.startsWith('"'))
-            assert.ok(!value.endsWith('"'))
-        }
-    })
-
-    test("name, version, and arch are strings", () => {
-        if (!["linux", "darwin", "win32"].includes(platform())) {
-            return
-        }
-        const result = osRelease()
-        assert.ok(result !== null)
-        assert.equal(typeof result.name, "string")
+        assert.ok(result.name.startsWith("Windows "))
         assert.equal(typeof result.version, "string")
         assert.equal(typeof result.arch, "string")
     })
 
-    test("name starts with 'Windows' on Windows", () => {
-        if (platform() !== "win32") {
-            return
-        }
-        const result = osRelease()
-        assert.ok(result !== null)
-        assert.ok(result.name.startsWith("Windows "))
+    test("returns null on unsupported platforms", {
+        skip: ["linux", "darwin", "win32"].includes(os) && "supported platform",
+    }, () => {
+        assert.equal(osRelease(), null)
     })
 })

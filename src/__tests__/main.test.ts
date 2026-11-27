@@ -1,7 +1,8 @@
 import assert from "node:assert/strict"
 import process from "node:process"
 import { afterEach, beforeEach, mock, suite, test } from "node:test"
-import type { Logger } from "@logtape/logtape"
+import { runInNewContext } from "node:vm"
+import { getDummyLogger } from "../loggers/getDummyLogger.ts"
 import {
     type LauncherFunction,
     type MainOptions,
@@ -11,6 +12,7 @@ import {
 } from "../node/main.ts"
 import type { Assert } from "../type-testing/Assert.ts"
 import type { Equal } from "../type-testing/Equal.ts"
+import { handlerFor, renderLog, settle } from "./helpers.ts"
 
 type _LauncherFunctionShape = Assert<
     Equal<LauncherFunction, () => void | Promise<void>>
@@ -51,7 +53,6 @@ type _MainOptionsShape = Assert<
 await suite("main", () => {
     const logMock = mock.fn()
     const onMock = mock.fn()
-    const onceMock = mock.fn()
     const exitMock = mock.fn()
     const setIntervalMock = mock.fn((_fn: () => void, _delay: number) => ({
         unref: () => {},
@@ -63,47 +64,37 @@ await suite("main", () => {
     // Forwards to `logMock` so existing assertions see every message, while
     // letting tests check which messages were logged at `info` level.
     const infoMock = mock.fn((...args: unknown[]) => logMock(...args))
-
     const debugMock = mock.fn()
-    const childLogger: Logger = {
-        info: infoMock,
-        error: logMock,
-        debug: debugMock,
-        getChild: () => childLogger,
-    } as unknown as Logger
-    const logger = { getChild: () => childLogger } as unknown as Logger
 
-    // Rebuilds the message of a tagged-template log call: the template parts
-    // are `arguments[0]` and the interpolated values follow.
-    const render = (call: { arguments: readonly unknown[] }): string => {
-        const [template, ...values] = call.arguments
-        if (Array.isArray(template)) {
-            return template.reduce(
-                (acc: string, part: string, i: number) =>
-                    acc + part + (i < values.length ? String(values[i]) : ""),
-                "",
-            )
-        }
-        return String(template)
-    }
+    // `getChild` returns the same dummy logger, so the spies installed on it
+    // also see the calls main() makes through its "main" child logger.
+    const logger = getDummyLogger()
+
+    const render = (call: { arguments: readonly unknown[] }): string =>
+        renderLog(call.arguments)
 
     beforeEach(() => {
-        logMock.mock.resetCalls()
-        debugMock.mock.resetCalls()
-        onMock.mock.resetCalls()
-        onceMock.mock.resetCalls()
-        exitMock.mock.resetCalls()
-        setIntervalMock.mock.resetCalls()
-        killMock.mock.resetCalls()
-        offMock.mock.resetCalls()
-        listenerCountMock.mock.resetCalls()
-        infoMock.mock.resetCalls()
+        for (const fn of [
+            logMock,
+            infoMock,
+            debugMock,
+            onMock,
+            exitMock,
+            setIntervalMock,
+            killMock,
+            offMock,
+            listenerCountMock,
+        ]) {
+            fn.mock.resetCalls()
+        }
         otherSignalListeners = 0
+        mock.method(logger, "info", infoMock)
+        mock.method(logger, "error", logMock)
+        mock.method(logger, "debug", debugMock)
         mock.method(process, "on", onMock)
         mock.method(process, "off", offMock)
         mock.method(process, "kill", killMock)
         mock.method(process, "listenerCount", listenerCountMock)
-        mock.method(process, "once", onceMock)
         mock.method(process, "exit", exitMock)
         mock.method(globalThis, "setInterval", setIntervalMock)
     })
@@ -112,19 +103,18 @@ await suite("main", () => {
     // test can call main() again.
     const teardowns: (() => void)[] = []
 
-    /** Lets the asynchronous log flush and exit path run. */
-    const settle = async (): Promise<void> => {
-        for (let i = 0; i < 10; i++) {
-            await new Promise(setImmediate)
-        }
-    }
-
     afterEach(() => {
         for (const teardown of teardowns.splice(0)) {
             teardown()
         }
         mock.restoreAll()
     })
+
+    /** Asserts that main() logged nothing, at any level. */
+    const assertNothingLogged = (): void => {
+        assert.equal(logMock.mock.callCount(), 0)
+        assert.equal(debugMock.mock.callCount(), 0)
+    }
 
     test("should log startup information", () => {
         teardowns.push(main("test-app", logger))
@@ -184,69 +174,28 @@ await suite("main", () => {
         }
     })
 
-    test("should register SIGINT handler", () => {
-        teardowns.push(main("test-app", logger))
-
-        const sigintCall = onMock.mock.calls.find(
-            (c) => c.arguments[0] === "SIGINT",
-        )
-        assert.ok(sigintCall, "SIGINT handler not registered")
-    })
-
-    test("should register SIGTERM handler", () => {
-        teardowns.push(main("test-app", logger))
-
-        const sigtermCall = onMock.mock.calls.find(
-            (c) => c.arguments[0] === "SIGTERM",
-        )
-        assert.ok(sigtermCall, "SIGTERM handler not registered")
-    })
-
-    test("should not register SIGINT or SIGTERM handlers when defaultInterruptionHandler is false", () => {
-        teardowns.push(
-            main("test-app", logger, { defaultInterruptionHandler: false }),
-        )
-
-        const sigintCall = onMock.mock.calls.find(
-            (c) => c.arguments[0] === "SIGINT",
-        )
-        const sigtermCall = onMock.mock.calls.find(
-            (c) => c.arguments[0] === "SIGTERM",
-        )
-        assert.equal(
-            sigintCall,
-            undefined,
-            "SIGINT handler should not be registered",
-        )
-        assert.equal(
-            sigtermCall,
-            undefined,
-            "SIGTERM handler should not be registered",
-        )
-    })
-
-    test("should register uncaughtException handler", () => {
-        teardowns.push(main("test-app", logger))
-
-        const call = onMock.mock.calls.find(
-            (c) => c.arguments[0] === "uncaughtException",
-        )
-        assert.ok(call, "uncaughtException handler not registered")
-    })
-
-    test("should register unhandledRejection handler", () => {
-        teardowns.push(main("test-app", logger))
-
-        const call = onMock.mock.calls.find(
-            (c) => c.arguments[0] === "unhandledRejection",
-        )
-        assert.ok(call, "unhandledRejection handler not registered")
-    })
-
-    const signalHandler = (signal: "SIGINT" | "SIGTERM") => {
-        const call = onMock.mock.calls.find((c) => c.arguments[0] === signal)
-        assert.ok(call, `${signal} handler not registered`)
-        return call.arguments[1] as () => Promise<void>
+    const ALL_EVENTS = [
+        "SIGINT",
+        "SIGTERM",
+        "uncaughtException",
+        "unhandledRejection",
+    ]
+    for (const [label, options, expected] of [
+        ["no options", undefined, ALL_EVENTS],
+        ["an empty options object", {}, ALL_EVENTS],
+        [
+            "defaultInterruptionHandler: false",
+            { defaultInterruptionHandler: false },
+            ["uncaughtException", "unhandledRejection"],
+        ],
+    ] as const) {
+        test(`registers exactly the expected handlers with ${label}`, () => {
+            teardowns.push(main("test-app", logger, options))
+            assert.deepEqual(
+                onMock.mock.calls.map((c) => c.arguments[0]),
+                expected,
+            )
+        })
     }
 
     for (const [signal, status] of [
@@ -255,7 +204,7 @@ await suite("main", () => {
     ] as const) {
         test(`should log ${signal} at info level and re-raise it`, async () => {
             teardowns.push(main("test-app", logger))
-            const handler = signalHandler(signal)
+            const handler = handlerFor(onMock, signal)
             await handler()
 
             assert.ok(
@@ -278,7 +227,7 @@ await suite("main", () => {
         test(`should exit with status ${status} on ${signal} when other listeners exist`, async () => {
             otherSignalListeners = 1
             teardowns.push(main("test-app", logger))
-            await signalHandler(signal)()
+            await handlerFor(onMock, signal)()
 
             assert.equal(killMock.mock.callCount(), 0)
             assert.equal(exitMock.mock.callCount(), 1)
@@ -286,41 +235,80 @@ await suite("main", () => {
         })
     }
 
-    test("should exit on uncaughtException with an Error and log its stack", async () => {
-        teardowns.push(main("test-app", logger))
+    // Fatal failures
 
-        const call = onMock.mock.calls.find(
-            (c) => c.arguments[0] === "uncaughtException",
-        )
-        assert.ok(call)
-        const handler = call.arguments[1]
-        const error = new Error("test error")
-        await handler(error, "unhandledException")
+    /** The stack of an error, which the test requires to exist. */
+    const stackOf = (value: unknown): string => {
+        assert.ok(Error.isError(value) && value.stack !== undefined)
+        return value.stack
+    }
 
-        assert.ok(
-            logMock.mock.calls.some(
-                (c) =>
-                    /Uncaught exception:/.test(render(c)) &&
-                    render(c).includes(error.stack ?? error.message),
-            ),
-        )
-        assert.ok(
-            logMock.mock.calls.some((c) => /Exception origin:/.test(render(c))),
-        )
-        assert.equal(exitMock.mock.callCount(), 1)
-        assert.equal(exitMock.mock.calls[0]?.arguments[0], 1)
-    })
+    /** An error whose stack was removed. */
+    const stacklessError = (): Error => {
+        const error = new Error("boom")
+        delete error.stack
+        return error
+    }
+
+    const FAILURE_VALUES: readonly (readonly [
+        label: string,
+        make: () => unknown,
+        rendered: (value: unknown) => string,
+    ])[] = [
+        ["an Error, with its stack", () => new Error("boom"), stackOf],
+        ["an Error without a stack", stacklessError, () => "Error: boom"],
+        ["a non-Error value", () => "something went wrong", String],
+        [
+            "an Error from another realm, with its stack",
+            () => runInNewContext('new Error("boom")'),
+            stackOf,
+        ],
+    ]
+
+    for (const [event, prefix, argsFor] of [
+        [
+            "uncaughtException",
+            "Uncaught exception: ",
+            (value: unknown) => [value, "uncaughtException"],
+        ],
+        [
+            "unhandledRejection",
+            "Unhandled promise rejection. Reason:\n",
+            (value: unknown) => [value],
+        ],
+    ] as const) {
+        for (const [label, make, rendered] of FAILURE_VALUES) {
+            test(`on ${event}, logs ${label} and exits with status 1`, async () => {
+                const value = make()
+                teardowns.push(main("test-app", logger))
+                await handlerFor(onMock, event)(...argsFor(value))
+
+                const messages = logMock.mock.calls.map(render)
+                assert.ok(
+                    messages.includes(prefix + rendered(value)),
+                    `logged: ${JSON.stringify(messages)}`,
+                )
+                if (event === "uncaughtException") {
+                    assert.ok(
+                        messages.includes(
+                            "Exception origin: uncaughtException",
+                        ),
+                    )
+                }
+                assert.equal(exitMock.mock.callCount(), 1)
+                assert.equal(exitMock.mock.calls[0]?.arguments[0], 1)
+            })
+        }
+    }
 
     test("logs errors via a tagged template so brace characters are preserved verbatim", async () => {
         teardowns.push(main("test-app", logger))
 
-        const call = onMock.mock.calls.find(
-            (c) => c.arguments[0] === "uncaughtException",
-        )
-        assert.ok(call)
-        const handler = call.arguments[1]
         const error = new Error('Unexpected token in JSON: {"key":"value"}')
-        await handler(error, "uncaughtException")
+        await handlerFor(onMock, "uncaughtException")(
+            error,
+            "uncaughtException",
+        )
 
         // logtape would replace '{...}' in a plain string with null; the
         // tagged-template form keeps the braces in the interpolated value.
@@ -341,115 +329,11 @@ await suite("main", () => {
         )
     })
 
-    test("should exit on uncaughtException with an Error and no stack", async () => {
-        teardowns.push(main("test-app", logger))
-
-        const call = onMock.mock.calls.find(
-            (c) => c.arguments[0] === "uncaughtException",
-        )
-        assert.ok(call)
-        const handler = call.arguments[1]
-        const error = new Error("test error")
-        delete error.stack
-        await handler(error, "unhandledException")
-
-        assert.ok(
-            logMock.mock.calls.some((c) =>
-                /Uncaught exception: Error: test error/.test(render(c)),
-            ),
-        )
-        assert.equal(exitMock.mock.callCount(), 1)
-        assert.equal(exitMock.mock.calls[0]?.arguments[0], 1)
-    })
-
-    test("should exit on uncaughtException with a non-Error value", async () => {
-        teardowns.push(main("test-app", logger))
-
-        const call = onMock.mock.calls.find(
-            (c) => c.arguments[0] === "uncaughtException",
-        )
-        assert.ok(call)
-        const handler = call.arguments[1]
-        await handler("something went wrong", "unhandledException")
-
-        assert.ok(
-            logMock.mock.calls.some((c) =>
-                /Uncaught exception: something went wrong/.test(render(c)),
-            ),
-        )
-        assert.equal(exitMock.mock.callCount(), 1)
-        assert.equal(exitMock.mock.calls[0]?.arguments[0], 1)
-    })
-
     test("should invoke the launcher function when provided", () => {
         const launcher = mock.fn()
         teardowns.push(main("test-app", logger, { launcher }))
         assert.equal(launcher.mock.callCount(), 1)
         assert.equal(launcher.mock.calls[0]?.arguments.length, 0)
-    })
-
-    test("should exit on unhandledRejection with an Error reason and no stack", async () => {
-        teardowns.push(main("test-app", logger))
-
-        const call = onMock.mock.calls.find(
-            (c) => c.arguments[0] === "unhandledRejection",
-        )
-        assert.ok(call)
-        const handler = call.arguments[1]
-        const error = new Error("rejection error")
-        delete error.stack
-        await handler(error)
-
-        assert.ok(
-            logMock.mock.calls.some((c) =>
-                /Unhandled promise rejection\. Reason:[\s\S]*Error: rejection error/.test(
-                    render(c),
-                ),
-            ),
-        )
-        assert.equal(exitMock.mock.callCount(), 1)
-        assert.equal(exitMock.mock.calls[0]?.arguments[0], 1)
-    })
-
-    test("should exit on unhandledRejection with a non-Error reason", async () => {
-        teardowns.push(main("test-app", logger))
-
-        const call = onMock.mock.calls.find(
-            (c) => c.arguments[0] === "unhandledRejection",
-        )
-        assert.ok(call)
-        const handler = call.arguments[1]
-        await handler("some reason")
-
-        assert.ok(
-            logMock.mock.calls.some((c) =>
-                /Unhandled promise rejection\. Reason:/.test(render(c)),
-            ),
-        )
-        assert.equal(exitMock.mock.callCount(), 1)
-        assert.equal(exitMock.mock.calls[0]?.arguments[0], 1)
-    })
-
-    test("should exit on unhandledRejection with an Error reason and log its stack", async () => {
-        teardowns.push(main("test-app", logger))
-
-        const call = onMock.mock.calls.find(
-            (c) => c.arguments[0] === "unhandledRejection",
-        )
-        assert.ok(call)
-        const handler = call.arguments[1]
-        const error = new Error("rejection error")
-        await handler(error)
-
-        assert.ok(
-            logMock.mock.calls.some(
-                (c) =>
-                    /Unhandled promise rejection\. Reason:/.test(render(c)) &&
-                    render(c).includes(error.stack ?? error.message),
-            ),
-        )
-        assert.equal(exitMock.mock.callCount(), 1)
-        assert.equal(exitMock.mock.calls[0]?.arguments[0], 1)
     })
 
     // Memory monitoring
@@ -484,20 +368,11 @@ await suite("main", () => {
             setIntervalMock.mock.calls[0]?.arguments[1],
             2 * 60 * 60 * 1_000,
         )
-        const events = onMock.mock.calls.map((c) => c.arguments[0])
-        assert.deepEqual(events, ["uncaughtException", "unhandledRejection"])
     })
 
     test("applies the defaults for an empty options object", () => {
         teardowns.push(main("test-app", logger, {}))
         assert.equal(setIntervalMock.mock.callCount(), 0)
-        const events = onMock.mock.calls.map((c) => c.arguments[0])
-        assert.deepEqual(events, [
-            "SIGINT",
-            "SIGTERM",
-            "uncaughtException",
-            "unhandledRejection",
-        ])
     })
 
     // Untyped callers still using the positional forms removed in 0.11.0.
@@ -514,7 +389,7 @@ await suite("main", () => {
                 TypeError,
             )
             assert.equal(onMock.mock.callCount(), 0)
-            assert.equal(logMock.mock.callCount(), 0)
+            assertNothingLogged()
             teardowns.push(main("test-app", logger))
         })
     }
@@ -525,13 +400,13 @@ await suite("main", () => {
         Number.POSITIVE_INFINITY,
         2_147_483_648,
     ]) {
-        test(`rejects flushTimeoutMs=${flushTimeoutMs} before registering anything`, () => {
+        test(`rejects flushTimeoutMs=${flushTimeoutMs} before logging or registering anything`, () => {
             assert.throws(
                 () => main("test-app", logger, { flushTimeoutMs }),
                 RangeError,
             )
             assert.equal(onMock.mock.callCount(), 0)
-            assert.equal(logMock.mock.callCount(), 0)
+            assertNothingLogged()
             // Not left active: a valid call still works.
             teardowns.push(main("test-app", logger))
         })
@@ -539,17 +414,24 @@ await suite("main", () => {
 
     for (const monitorMemoryHours of [
         1_000,
+        0.01,
         -1,
         Number.NaN,
         Number.POSITIVE_INFINITY,
     ]) {
-        test(`rejects monitorMemoryHours=${monitorMemoryHours} before registering any handler`, () => {
+        test(`rejects monitorMemoryHours=${monitorMemoryHours} before logging or registering anything`, () => {
             assert.throws(
                 () => main("test-app", logger, { monitorMemoryHours }),
-                RangeError,
+                {
+                    name: "RangeError",
+                    message: new RegExp(
+                        `^main: "monitorMemoryHours" must be 0 \\(disabled\\) or a finite number between .+, received ${monitorMemoryHours}$`,
+                    ),
+                },
             )
             assert.equal(onMock.mock.callCount(), 0)
             assert.equal(setIntervalMock.mock.callCount(), 0)
+            assertNothingLogged()
             teardowns.push(main("test-app", logger))
         })
     }
