@@ -1,9 +1,17 @@
 import assert from "node:assert/strict"
 import process from "node:process"
 import { afterEach, beforeEach, mock, suite, test } from "node:test"
-import type { Logger } from "@logtape/logtape"
+import { noop } from "../core/noop.ts"
+import { getDummyLogger } from "../loggers/getDummyLogger.ts"
 // Type-only: erased at runtime, so it does not load main.ts before the mock.
 import type { MainOptions, ShutdownContext } from "../node/main.ts"
+import { handlerFor, renderLog, settle } from "./helpers.ts"
+
+// LogTape's `dispose` is main()'s default `flushLogs`, and this module mock is
+// the only way to observe and steer it (pending, failing, or hanging flushes).
+// A real LogTape sink cannot stand in for it: LogTape serializes dispose() and
+// configure(), so a flush left hanging on purpose would block later tests.
+// Custom `flushLogs` functions are tested through the public option below.
 
 /** Controls what the mocked logtape `dispose()` does in each test. */
 let disposeImpl: () => Promise<void> = () => Promise.resolve()
@@ -15,51 +23,53 @@ mock.module("@logtape/logtape", {
 
 const { main } = await import("../node/main.ts")
 
-await suite("main (log flushing on shutdown)", () => {
-    const noop = (): void => {}
-    const childLogger = {
-        info: noop,
-        error: noop,
-        debug: noop,
-        getChild: () => childLogger,
-    } as unknown as Logger
-    const logger = { getChild: () => childLogger } as unknown as Logger
+/** Ordered record of the shutdown steps observed by the mocks. */
+const steps: string[] = []
 
-    const onMock = mock.fn()
-    const exitMock = mock.fn()
-    const killMock = mock.fn()
+/** `main()` logs through this logger; its `error` method records a step. */
+const logger = getDummyLogger()
+const errorMock = mock.fn((...args: unknown[]) => {
+    steps.push(`error:${renderLog(args)}`)
+})
 
-    const handlerFor = (event: string) => {
-        const call = onMock.mock.calls.find((c) => c.arguments[0] === event)
-        assert.ok(call, `${event} handler not registered`)
-        return call.arguments[1] as (...args: unknown[]) => Promise<void>
+const onMock = mock.fn()
+const exitMock = mock.fn((code?: number) => {
+    steps.push(`exit:${code}`)
+})
+const killMock = mock.fn((_pid: number, signal: string) => {
+    steps.push(`kill:${signal}`)
+})
+
+// Teardown functions returned by main(), run after each test so the next test
+// can call main() again.
+const teardowns: (() => void)[] = []
+
+beforeEach(() => {
+    steps.length = 0
+    disposeImpl = () => {
+        steps.push("dispose")
+        return Promise.resolve()
     }
+    for (const fn of [disposeMock, errorMock, onMock, exitMock, killMock]) {
+        fn.mock.resetCalls()
+    }
+    mock.method(logger, "error", errorMock)
+    mock.method(process, "on", onMock)
+    mock.method(process, "off", noop)
+    mock.method(process, "exit", exitMock)
+    mock.method(process, "kill", killMock)
+    mock.method(process, "listenerCount", () => 0)
+})
 
-    // Teardown functions returned by main(), run after each test so the next
-    // test can call main() again.
-    const teardowns: (() => void)[] = []
+afterEach(() => {
+    for (const teardown of teardowns.splice(0)) {
+        teardown()
+    }
+    mock.timers.reset()
+    mock.restoreAll()
+})
 
-    beforeEach(() => {
-        disposeImpl = () => Promise.resolve()
-        disposeMock.mock.resetCalls()
-        onMock.mock.resetCalls()
-        exitMock.mock.resetCalls()
-        killMock.mock.resetCalls()
-        mock.method(process, "on", onMock)
-        mock.method(process, "off", noop)
-        mock.method(process, "exit", exitMock)
-        mock.method(process, "kill", killMock)
-        mock.method(process, "listenerCount", () => 0)
-    })
-
-    afterEach(() => {
-        for (const teardown of teardowns.splice(0)) {
-            teardown()
-        }
-        mock.timers.reset()
-        mock.restoreAll()
-    })
-
+await suite("main (log flushing on shutdown)", () => {
     for (const [event, args, exited] of [
         ["SIGINT", [], () => killMock.mock.callCount()],
         ["SIGTERM", [], () => killMock.mock.callCount()],
@@ -79,7 +89,7 @@ await suite("main (log flushing on shutdown)", () => {
             disposeImpl = () => promise
             teardowns.push(main("test-app", logger))
 
-            const pending = handlerFor(event)(...args)
+            const pending = handlerFor(onMock, event)(...args)
             await new Promise(setImmediate)
             assert.equal(disposeMock.mock.callCount(), 1)
             assert.equal(exited(), 0, "must not exit before the flush ends")
@@ -94,7 +104,10 @@ await suite("main (log flushing on shutdown)", () => {
         disposeImpl = () => Promise.reject(new Error("sink failed"))
         teardowns.push(main("test-app", logger))
 
-        await handlerFor("uncaughtException")(new Error("boom"), "origin")
+        await handlerFor(onMock, "uncaughtException")(
+            new Error("boom"),
+            "origin",
+        )
         assert.equal(exitMock.mock.callCount(), 1)
         assert.equal(exitMock.mock.calls[0]?.arguments[0], 1)
     })
@@ -104,7 +117,10 @@ await suite("main (log flushing on shutdown)", () => {
         disposeImpl = () => new Promise<void>(() => {})
         teardowns.push(main("test-app", logger))
 
-        const pending = handlerFor("unhandledRejection")(new Error("boom"))
+        const pending = handlerFor(
+            onMock,
+            "unhandledRejection",
+        )(new Error("boom"))
         mock.timers.tick(2_999)
         await new Promise(setImmediate)
         assert.equal(exitMock.mock.callCount(), 0)
@@ -120,8 +136,8 @@ await suite("main (log flushing on shutdown)", () => {
         disposeImpl = () => new Promise<void>(() => {})
         teardowns.push(main("test-app", logger))
 
-        const first = handlerFor("SIGTERM")()
-        await handlerFor("SIGINT")()
+        const first = handlerFor(onMock, "SIGTERM")()
+        await handlerFor(onMock, "SIGINT")()
         assert.equal(disposeMock.mock.callCount(), 1)
         assert.equal(killMock.mock.callCount(), 1)
         assert.deepEqual(killMock.mock.calls[0]?.arguments, [
@@ -140,7 +156,7 @@ await suite("main (log flushing on shutdown)", () => {
         disposeImpl = () => new Promise<void>(() => {})
         teardowns.push(main("test-app", logger, { flushTimeoutMs: 500 }))
 
-        const pending = handlerFor("uncaughtException")(
+        const pending = handlerFor(onMock, "uncaughtException")(
             new Error("boom"),
             "uncaughtException",
         )
@@ -158,7 +174,10 @@ await suite("main (log flushing on shutdown)", () => {
         disposeImpl = () => new Promise<void>(() => {})
         teardowns.push(main("test-app", logger, { flushTimeoutMs: 0 }))
 
-        const pending = handlerFor("unhandledRejection")(new Error("boom"))
+        const pending = handlerFor(
+            onMock,
+            "unhandledRejection",
+        )(new Error("boom"))
         mock.timers.tick(0)
         await pending
         assert.equal(exitMock.mock.callCount(), 1)
@@ -166,72 +185,14 @@ await suite("main (log flushing on shutdown)", () => {
 })
 
 await suite("main (shutdown function)", () => {
-    /** Ordered record of the shutdown steps observed by the mocks. */
-    const steps: string[] = []
-    const errorMock = mock.fn((...args: unknown[]) => {
-        const [template, ...values] = args
-        steps.push(
-            `error:${(template as string[]).reduce(
-                (acc, part, i) =>
-                    acc + part + (i < values.length ? String(values[i]) : ""),
-                "",
-            )}`,
-        )
-    })
-    const childLogger = {
-        info: (): void => {},
-        error: errorMock,
-        debug: (): void => {},
-        getChild: () => childLogger,
-    } as unknown as Logger
-    const logger = { getChild: () => childLogger } as unknown as Logger
-
-    const onMock = mock.fn()
-    const exitMock = mock.fn((code?: number) => {
-        steps.push(`exit:${code}`)
-    })
-    const killMock = mock.fn((_pid: number, signal: string) => {
-        steps.push(`kill:${signal}`)
-    })
     const clearIntervalMock = mock.fn(() => {
         steps.push("stopMonitoring")
     })
 
-    const handlerFor = (event: string) => {
-        const call = onMock.mock.calls.find((c) => c.arguments[0] === event)
-        assert.ok(call, `${event} handler not registered`)
-        return call.arguments[1] as (...args: unknown[]) => Promise<void>
-    }
-
-    const teardowns: (() => void)[] = []
-
     beforeEach(() => {
-        steps.length = 0
-        disposeImpl = () => {
-            steps.push("dispose")
-            return Promise.resolve()
-        }
-        disposeMock.mock.resetCalls()
-        errorMock.mock.resetCalls()
-        onMock.mock.resetCalls()
-        exitMock.mock.resetCalls()
-        killMock.mock.resetCalls()
         clearIntervalMock.mock.resetCalls()
-        mock.method(process, "on", onMock)
-        mock.method(process, "off", (): void => {})
-        mock.method(process, "exit", exitMock)
-        mock.method(process, "kill", killMock)
-        mock.method(process, "listenerCount", () => 0)
         mock.method(globalThis, "setInterval", () => ({ unref: () => {} }))
         mock.method(globalThis, "clearInterval", clearIntervalMock)
-    })
-
-    afterEach(() => {
-        for (const teardown of teardowns.splice(0)) {
-            teardown()
-        }
-        mock.timers.reset()
-        mock.restoreAll()
     })
 
     for (const signal of ["SIGINT", "SIGTERM"] as const) {
@@ -245,7 +206,7 @@ await suite("main (shutdown function)", () => {
                 main("test-app", logger, { shutdown, monitorMemoryHours: 1 }),
             )
 
-            await handlerFor(signal)()
+            await handlerFor(onMock, signal)()
             assert.deepEqual(shutdown.mock.calls[0]?.arguments, [
                 { reason: "signal", signal },
             ])
@@ -273,7 +234,7 @@ await suite("main (shutdown function)", () => {
             })
             teardowns.push(main("test-app", logger, { shutdown }))
 
-            await handlerFor(event)(...args)
+            await handlerFor(onMock, event)(...args)
             assert.deepEqual(shutdown.mock.calls[0]?.arguments, [
                 { reason: "error", source, error: args[0] },
             ])
@@ -295,9 +256,7 @@ await suite("main (shutdown function)", () => {
                 shutdown,
             }),
         )
-        for (let i = 0; i < 10; i++) {
-            await new Promise(setImmediate)
-        }
+        await settle()
         assert.deepEqual(shutdown.mock.calls[0]?.arguments, [
             { reason: "error", source: "launcher", error },
         ])
@@ -314,7 +273,7 @@ await suite("main (shutdown function)", () => {
             }),
         )
 
-        await handlerFor("SIGTERM")()
+        await handlerFor(onMock, "SIGTERM")()
         assert.equal(steps.length, 3)
         assert.match(
             steps[0] ?? "",
@@ -333,7 +292,7 @@ await suite("main (shutdown function)", () => {
             }),
         )
 
-        await handlerFor("SIGINT")()
+        await handlerFor(onMock, "SIGINT")()
         assert.match(steps[0] ?? "", /sync close failed/)
         assert.deepEqual(steps.slice(1), ["dispose", "exit:1"])
     })
@@ -345,7 +304,7 @@ await suite("main (shutdown function)", () => {
             }),
         )
 
-        await handlerFor("unhandledRejection")(new Error("boom"))
+        await handlerFor(onMock, "unhandledRejection")(new Error("boom"))
         assert.equal(exitMock.mock.callCount(), 1)
         assert.equal(exitMock.mock.calls[0]?.arguments[0], 1)
     })
@@ -358,7 +317,7 @@ await suite("main (shutdown function)", () => {
             }),
         )
 
-        const pending = handlerFor("SIGTERM")()
+        const pending = handlerFor(onMock, "SIGTERM")()
         mock.timers.tick(9_999)
         await new Promise(setImmediate)
         assert.deepEqual(steps, [])
@@ -381,7 +340,7 @@ await suite("main (shutdown function)", () => {
             }),
         )
 
-        const pending = handlerFor("SIGTERM")()
+        const pending = handlerFor(onMock, "SIGTERM")()
         mock.timers.tick(249)
         await new Promise(setImmediate)
         assert.equal(exitMock.mock.callCount(), 0)
@@ -397,7 +356,7 @@ await suite("main (shutdown function)", () => {
             main("test-app", logger, { shutdown, shutdownTimeoutMs: 0 }),
         )
 
-        await handlerFor("SIGTERM")()
+        await handlerFor(onMock, "SIGTERM")()
         assert.equal(shutdown.mock.callCount(), 1)
         assert.deepEqual(steps, ["dispose", "kill:SIGTERM"])
     })
@@ -407,10 +366,13 @@ await suite("main (shutdown function)", () => {
         const shutdown = mock.fn(() => promise)
         teardowns.push(main("test-app", logger, { shutdown }))
 
-        const first = handlerFor("SIGTERM")()
+        const first = handlerFor(onMock, "SIGTERM")()
         await new Promise(setImmediate)
-        await handlerFor("SIGINT")()
-        await handlerFor("uncaughtException")(new Error("late"), "origin")
+        await handlerFor(onMock, "SIGINT")()
+        await handlerFor(onMock, "uncaughtException")(
+            new Error("late"),
+            "origin",
+        )
         assert.equal(shutdown.mock.callCount(), 1)
         assert.deepEqual(
             steps.filter((s) => !s.startsWith("error:")),
@@ -439,13 +401,11 @@ await suite("main (shutdown function)", () => {
         mock.method(process, "exit", exitMock)
         mock.method(process, "kill", killMock)
         try {
-            const pending = handlerFor("SIGTERM")()
+            const pending = handlerFor(onMock, "SIGTERM")()
             mock.timers.tick(100)
             await pending
             reject(new Error("too late"))
-            for (let i = 0; i < 5; i++) {
-                await new Promise(setImmediate)
-            }
+            await settle()
             assert.equal(unhandled.mock.callCount(), 0)
         } finally {
             process.off("unhandledRejection", unhandled)
@@ -460,7 +420,7 @@ await suite("main (shutdown function)", () => {
         })
         teardowns.push(main("test-app", logger, { flushLogs }))
 
-        await handlerFor("SIGTERM")()
+        await handlerFor(onMock, "SIGTERM")()
         assert.equal(disposeMock.mock.callCount(), 0)
         assert.deepEqual(steps, ["customFlush", "kill:SIGTERM"])
     })
@@ -468,7 +428,7 @@ await suite("main (shutdown function)", () => {
     test("passing noop as flushLogs skips flushing", async () => {
         teardowns.push(main("test-app", logger, { flushLogs: () => {} }))
 
-        await handlerFor("unhandledRejection")(new Error("boom"))
+        await handlerFor(onMock, "unhandledRejection")(new Error("boom"))
         assert.equal(disposeMock.mock.callCount(), 0)
         assert.equal(exitMock.mock.calls[0]?.arguments[0], 1)
     })
@@ -482,7 +442,7 @@ await suite("main (shutdown function)", () => {
             }),
         )
 
-        await handlerFor("SIGINT")()
+        await handlerFor(onMock, "SIGINT")()
         assert.deepEqual(steps, ["kill:SIGINT"])
     })
 
@@ -495,7 +455,7 @@ await suite("main (shutdown function)", () => {
             }),
         )
 
-        const pending = handlerFor("SIGINT")()
+        const pending = handlerFor(onMock, "SIGINT")()
         mock.timers.tick(49)
         await new Promise(setImmediate)
         assert.equal(killMock.mock.callCount(), 0)

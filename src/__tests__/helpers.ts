@@ -9,6 +9,19 @@ export function renderLog([template, ...values]: readonly unknown[]): string {
     return String.raw({ raw: template }, ...values)
 }
 
+/**
+ * Returns the handler that a mocked `process.on` registered for `event`;
+ * fails the test when there is none.
+ */
+export function handlerFor(
+    on: { mock: { calls: readonly { arguments: readonly unknown[] }[] } },
+    event: string,
+): (...args: unknown[]) => Promise<void> {
+    const call = on.mock.calls.find((c) => c.arguments[0] === event)
+    assert.ok(call, `${event} handler not registered`)
+    return call.arguments[1] as (...args: unknown[]) => Promise<void>
+}
+
 /** Lets pending promise chains (e.g. the shutdown sequence) run. */
 export async function settle(turns = 10): Promise<void> {
     for (let i = 0; i < turns; i++) {
