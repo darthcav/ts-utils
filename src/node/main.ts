@@ -1,5 +1,6 @@
 import { constants } from "node:os"
 import process, { env, execArgv, pid, title } from "node:process"
+import { setTimeout as delay } from "node:timers/promises"
 import { dispose, type Logger } from "@logtape/logtape"
 import { isValidDelay, MAX_DELAY_MS } from "./delays.ts"
 import { HOURS_RANGE, isValidHours, monitorMemory } from "./monitorMemory.ts"
@@ -28,7 +29,7 @@ async function runBounded(
     task: () => unknown,
     timeoutMs: number,
 ): Promise<BoundedOutcome> {
-    let timer: ReturnType<typeof setTimeout> | undefined
+    const timeout = new AbortController()
     try {
         return await Promise.race([
             Promise.try(task).then(
@@ -38,15 +39,16 @@ async function runBounded(
                     reason,
                 }),
             ),
-            new Promise<BoundedOutcome>((resolve) => {
-                timer = setTimeout(
-                    () => resolve({ status: "timeout" }),
-                    timeoutMs,
-                )
-            }),
+            delay<BoundedOutcome>(
+                timeoutMs,
+                { status: "timeout" },
+                { signal: timeout.signal },
+            ),
         ])
     } finally {
-        clearTimeout(timer)
+        // Cancels the timer. The pending delay then rejects, but the race has
+        // already handled that.
+        timeout.abort()
     }
 }
 

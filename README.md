@@ -54,7 +54,8 @@ import type { Assert, Equal } from "@darthcav/ts-utils/type-testing"
 ```
 
 The `core` entry point imports no Node.js built-ins and no packages, so its helpers run in any
-runtime that supports ES2025 (`millisecondsToString` needs `Intl.DurationFormat`).
+runtime that supports ES2025 (`millisecondsToString` also needs `Intl.DurationFormat` and
+`Temporal`).
 
 ## Usage
 
@@ -398,6 +399,9 @@ npm run build
 
 # Run tests
 npm test
+
+# Run tests with coverage (fails below 100%)
+npm run test:coverage
 
 # Lint and format
 npm run lint

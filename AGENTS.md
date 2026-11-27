@@ -28,7 +28,7 @@
           `isBoolean`, `isFiniteNumber`, `isArrayOf`, and the narrowing helpers `asRuntimeObject`,
           `asString`, `asBoolean`, `asFiniteNumber`, `asArrayOf`, `filterByGuard`,
           `toRuntimeObjectArray`.
-        - `millisecondsToString.ts` (needs `Intl.DurationFormat`) and `noop.ts`.
+        - `millisecondsToString.ts` (needs `Intl.DurationFormat` and `Temporal`) and `noop.ts`.
     - `src/node/` (`@darthcav/ts-utils/node`): Node.js process utilities.
         - `main.ts` bootstraps the process: it logs the startup state, registers the lifecycle and
           fatal error handlers, optionally starts memory monitoring, runs the optional launcher, and

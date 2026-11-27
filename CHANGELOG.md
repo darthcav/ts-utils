@@ -10,8 +10,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed
 
 - `main` now rejects a `monitorMemoryHours` outside `monitorMemory`'s range (e.g. `0.01`, shorter
-  than one minute) with its own `RangeError` message, naming the option and the valid range, instead
-  of the `RangeError` thrown by `monitorMemory`. Valid values and the error type are unchanged.
+  than one minute) with its own `RangeError` message, naming the option and the valid range, before
+  anything is logged; `monitorMemory` used to throw it after the startup messages. Valid values and
+  the error type are unchanged.
+- `monitorMemory` now throws a `RangeError` for an `hours` value that is not a number (e.g. the
+  string `"2"` from an untyped caller), which it used to convert to a number.
+- `millisecondsToString` now splits the duration into units with `Temporal`, so outside Node.js the
+  `core` entry point needs `Temporal` as well as `Intl.DurationFormat`. The output is unchanged.
 
 ### Fixed
 
