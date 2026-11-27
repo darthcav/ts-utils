@@ -66,16 +66,10 @@ export function millisecondsToString(ms: number, locale = "en"): string {
         )
     }
 
-    const totalMilliseconds = Math.round(ms)
-    const magnitude = Math.abs(totalMilliseconds)
-
-    const formatted = getDurationFormatter(locale).format({
-        days: Math.floor(magnitude / 86_400_000),
-        hours: Math.floor((magnitude % 86_400_000) / 3_600_000),
-        minutes: Math.floor((magnitude % 3_600_000) / 60_000),
-        seconds: Math.floor((magnitude % 60_000) / 1000),
-        milliseconds: magnitude % 1000,
-    })
-
-    return totalMilliseconds < 0 && formatted ? `-${formatted}` : formatted
+    // Balances the milliseconds into days (of 24 hours) down to milliseconds.
+    // `Intl.DurationFormat` puts the sign of a negative duration in front.
+    const duration = Temporal.Duration.from({
+        milliseconds: Math.round(ms),
+    }).round({ largestUnit: "days" })
+    return getDurationFormatter(locale).format(duration)
 }

@@ -81,15 +81,12 @@ await suite("millisecondsToString", () => {
         assert.throws(() => millisecondsToString(5_000, "!!"), RangeError)
     })
 
-    test("handles many distinct locales without unbounded cache growth", () => {
-        // Exercise the bounded formatter cache: requesting far more distinct
-        // valid locales than the cache holds must keep producing correct output.
-        const locales = ["en", "de", "es", "fr", "it", "pt", "nl", "sv", "pl"]
-        for (let i = 0; i < 200; i++) {
-            const locale = locales[i % locales.length] ?? "en"
-            assert.equal(typeof millisecondsToString(5_000, locale), "string")
+    test("evicts the oldest formatters beyond the cache limit and still formats them", () => {
+        // Private-use tags are distinct cache keys that all format as English.
+        for (let i = 1; i <= 100; i++) {
+            assert.equal(millisecondsToString(5_000, `en-x-${i}`), "5s")
         }
-        // A previously-evicted locale still formats correctly on re-request.
-        assert.equal(millisecondsToString(5_000, "en"), "5s")
+        // "en-x-1" was evicted long ago; requesting it again builds a new formatter.
+        assert.equal(millisecondsToString(5_000, "en-x-1"), "5s")
     })
 })

@@ -1,7 +1,7 @@
 {
     "name": "@darthcav/ts-utils",
     "description": "A collection of utility functions for TypeScript applications and modules",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "author": {
         "name": "darthcav",
         "url": "https://github.com/darthcav"
@@ -63,8 +63,8 @@
         "typecheck": "tsc --noEmit",
         "\n===== Test =====": "",
         "test": "node --env-file-if-exists=.env.local --experimental-test-module-mocks --test --test-reporter=spec \"src/**/*.test.ts\"",
-        "test:coverage": "node --env-file-if-exists=.env.local --experimental-test-module-mocks --experimental-test-coverage --test \"src/**/*.test.ts\"",
-        "test:coverage:lcov": "node -e \"fs.mkdirSync('coverage', { recursive: true })\" && node --env-file-if-exists=.env.local --experimental-test-module-mocks --experimental-test-coverage --test-reporter=lcov --test-reporter-destination=coverage/lcov.info --test-reporter=spec --test-reporter-destination=stdout --test \"src/**/*.test.ts\"",
+        "test:coverage": "node --env-file-if-exists=.env.local --experimental-test-module-mocks --experimental-test-coverage --test-coverage-lines=100 --test-coverage-branches=100 --test-coverage-functions=100 --test-coverage-exclude=\"src/__tests__/**\" --test \"src/**/*.test.ts\"",
+        "test:coverage:lcov": "node -e \"fs.mkdirSync('coverage', { recursive: true })\" && node --env-file-if-exists=.env.local --experimental-test-module-mocks --experimental-test-coverage --test-coverage-lines=100 --test-coverage-branches=100 --test-coverage-functions=100 --test-coverage-exclude=\"src/__tests__/**\" --test-reporter=lcov --test-reporter-destination=coverage/lcov.info --test-reporter=spec --test-reporter-destination=stdout --test \"src/**/*.test.ts\"",
         "\n===== Linter =====": "",
         "lint": "biome check . && prettier --check \"**/*.md\" --ignore-path .gitignore",
         "lint:fix": "biome check --write . && prettier --write \"**/*.md\" --ignore-path .gitignore",

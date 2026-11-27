@@ -1,15 +1,29 @@
 import { memoryUsage, uptime } from "node:process"
 import type { Logger } from "@logtape/logtape"
+import { isFiniteNumber } from "../core/guards.ts"
 import { millisecondsToString } from "../core/millisecondsToString.ts"
+import { isValidDelay, MAX_DELAY_MS } from "./delays.ts"
 
 /** Shortest allowed reporting interval: one minute. */
 const MIN_DELAY_MS = 60 * 1_000
 
+/** One hour in milliseconds. */
+const HOUR_MS = 60 * 60 * 1_000
+
 /**
- * Longest delay `setInterval` supports (2³¹ − 1 ms, about 596.5 hours). Node.js
- * silently replaces larger delays with 1 ms, which would flood the logs.
+ * The valid range of a reporting interval in hours, for error messages.
+ * Internal, like {@link isValidHours}.
  */
-const MAX_DELAY_MS = 2_147_483_647
+export const HOURS_RANGE: string = `between ${MIN_DELAY_MS / HOUR_MS} and ${MAX_DELAY_MS / HOUR_MS} (1 minute to 2^31 - 1 ms)`
+
+/**
+ * Whether `hours` is a valid reporting interval ({@link HOURS_RANGE}).
+ * Internal: {@link main} uses it too, but the `node` entry point does not
+ * re-export it.
+ */
+export function isValidHours(hours: unknown): hours is number {
+    return isFiniteNumber(hours) && isValidDelay(hours * HOUR_MS, MIN_DELAY_MS)
+}
 
 /**
  * Starts a periodic interval that logs process uptime and memory usage, and
@@ -52,14 +66,9 @@ const MAX_DELAY_MS = 2_147_483_647
  * ```
  */
 export function monitorMemory(logger: Logger, hours: number = 24): () => void {
-    const delay = 60 * 60 * 1_000 * hours
-    if (
-        !Number.isFinite(delay) ||
-        delay < MIN_DELAY_MS ||
-        delay > MAX_DELAY_MS
-    ) {
+    if (!isValidHours(hours)) {
         throw new RangeError(
-            `monitorMemory: "hours" must be a finite number between ${MIN_DELAY_MS / 3_600_000} and ${MAX_DELAY_MS / 3_600_000} (1 minute to 2^31 - 1 ms), received ${hours}`,
+            `monitorMemory: "hours" must be a finite number ${HOURS_RANGE}, received ${hours}`,
         )
     }
     const __logger = logger.getChild(["monitorMemory"])
@@ -79,7 +88,7 @@ export function monitorMemory(logger: Logger, hours: number = 24): () => void {
             "Process memory - Resident set size: {rss} | Heap total: {heapTotal} | Heap used: {heapUsed} | External: {external}",
             { rss, heapTotal, heapUsed, external },
         )
-    }, delay)
+    }, hours * HOUR_MS)
     timer.unref()
 
     return () => clearInterval(timer)

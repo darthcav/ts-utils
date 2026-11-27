@@ -7,6 +7,24 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-11-27
+
+### Changed
+
+- `main` now rejects a `monitorMemoryHours` outside `monitorMemory`'s range (e.g. `0.01`, shorter
+  than one minute) with its own `RangeError` message, naming the option and the valid range, before
+  anything is logged; `monitorMemory` used to throw it after the startup messages. Valid values and
+  the error type are unchanged.
+- `monitorMemory` now throws a `RangeError` for an `hours` value that is not a number (e.g. the
+  string `"2"` from an untyped caller), which it used to convert to a number.
+- `millisecondsToString` now splits the duration into units with `Temporal`, so outside Node.js the
+  `core` entry point needs `Temporal` as well as `Intl.DurationFormat`. The output is unchanged.
+
+### Fixed
+
+- `main` now logs the stack of errors from another realm (e.g. a `node:vm` context) on fatal
+  failures; they were logged as `String(error)`, without the stack.
+
 ## [1.0.0] - 2026-11-22
 
 This release adds subpath entry points, graceful shutdown in `main`, new type guards, and macOS

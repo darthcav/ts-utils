@@ -28,7 +28,7 @@
           `isBoolean`, `isFiniteNumber`, `isArrayOf`, and the narrowing helpers `asRuntimeObject`,
           `asString`, `asBoolean`, `asFiniteNumber`, `asArrayOf`, `filterByGuard`,
           `toRuntimeObjectArray`.
-        - `millisecondsToString.ts` (needs `Intl.DurationFormat`) and `noop.ts`.
+        - `millisecondsToString.ts` (needs `Intl.DurationFormat` and `Temporal`) and `noop.ts`.
     - `src/node/` (`@darthcav/ts-utils/node`): Node.js process utilities.
         - `main.ts` bootstraps the process: it logs the startup state, registers the lifecycle and
           fatal error handlers, optionally starts memory monitoring, runs the optional launcher, and
@@ -37,9 +37,14 @@
           two steps are bounded by `shutdownTimeoutMs` and `flushTimeoutMs`.
         - `monitorMemory.ts` emits periodic uptime and memory statistics using
           `process.memoryUsage()` and `millisecondsToString()`.
-        - `osRelease.ts` parses `/etc/os-release` (falling back to `/usr/lib/os-release`) on Linux,
-          `/System/Library/CoreServices/SystemVersion.plist` on macOS, and maps Windows kernel
-          versions to human-readable names.
+        - `osRelease.ts` reads `/etc/os-release` (falling back to `/usr/lib/os-release`) on Linux
+          and `/System/Library/CoreServices/SystemVersion.plist` on macOS, through a per-platform
+          table, and maps Windows kernel versions to human-readable names. The file parsers live in
+          `releaseParsers.ts`.
+        - `delays.ts` holds the timer delay limit (2³¹ − 1 ms) and its range check, shared by
+          `main.ts` and `monitorMemory.ts`.
+        - `delays.ts`, `releaseParsers.ts`, and the internal exports of `monitorMemory.ts`
+          (`isValidHours`, `HOURS_RANGE`) are not re-exported by the entry point.
     - `src/loggers/` (`@darthcav/ts-utils/loggers`): `getConsoleLogger.ts` wraps `@logtape/logtape`,
       configures logging globally, and returns a category logger (ANSI colors only on color
       terminals; `FORCE_COLOR` overrides). `getDummyLogger.ts` provides a synchronous no-op logger
@@ -111,8 +116,9 @@ node --input-type=module -e "import p from './package.json' with { type: 'json' 
 - **Run the checks**: `npm test`, `npm run typecheck`, and `npm run lint`.
 - **Update tests** — if the change adds, removes, or modifies user-visible features, add or update
   tests in `src/__tests__/` to cover the new behavior and ensure existing tests still pass.
-- **Check coverage** (`npm run test:coverage`) — it must not decrease, and critical paths must be
-  covered.
+- **Check coverage** (`npm run test:coverage`) — the coverage scripts require 100% line, branch, and
+  function coverage of `src/` (excluding `src/__tests__`) and fail below it, so every new path needs
+  a test.
 - **Update documentation** — if the change adds, removes, or modifies user-visible features, update
   `README.md` (feature descriptions, usage examples, project structure), the JSDoc, and add an entry
   under `[Unreleased]` in `CHANGELOG.md`.
@@ -180,6 +186,10 @@ rather than adding a package.
   cover (e.g. `main.test.ts`, `main-shutdown.test.ts`, `main-process.test.ts`,
   `osRelease-macos.test.ts`, `guards.test.ts`, `index.test.ts`). Keep coverage aligned with the
   module you change.
+- Shared test helpers (log rendering, `settle`, `handlerFor`, the mocked `readFileSync`) live in
+  `src/__tests__/helpers.ts`; reuse them instead of redefining them per file.
+- Test parsers and other pure helpers directly with plain inputs (e.g. `releaseParsers.test.ts`);
+  keep module-mocked platform tests for the dispatch and file lookup.
 - Tests import source files from `src/` directly; they do not test compiled output from `dist/` (the
   `exports` check above covers the built entry points).
 - Mocking ESM dependencies uses Node's experimental module mocking: call `mock.module()` before

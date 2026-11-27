@@ -1,19 +1,15 @@
 import { constants } from "node:os"
 import process, { env, execArgv, pid, title } from "node:process"
+import { setTimeout as delay } from "node:timers/promises"
 import { dispose, type Logger } from "@logtape/logtape"
-import { monitorMemory } from "./monitorMemory.ts"
+import { isValidDelay, MAX_DELAY_MS } from "./delays.ts"
+import { HOURS_RANGE, isValidHours, monitorMemory } from "./monitorMemory.ts"
 
 /** Default for {@link MainOptions.flushTimeoutMs}. */
 const DEFAULT_FLUSH_TIMEOUT_MS = 3_000
 
 /** Default for {@link MainOptions.shutdownTimeoutMs}. */
 const DEFAULT_SHUTDOWN_TIMEOUT_MS = 10_000
-
-/**
- * Longest delay `setTimeout` supports (2³¹ − 1 ms). Node.js silently replaces
- * larger delays with 1 ms.
- */
-const MAX_TIMEOUT_MS = 2_147_483_647
 
 /** Whether a {@link main} call has not been torn down yet. */
 let active = false
@@ -33,7 +29,7 @@ async function runBounded(
     task: () => unknown,
     timeoutMs: number,
 ): Promise<BoundedOutcome> {
-    let timer: ReturnType<typeof setTimeout> | undefined
+    const timeout = new AbortController()
     try {
         return await Promise.race([
             Promise.try(task).then(
@@ -43,30 +39,38 @@ async function runBounded(
                     reason,
                 }),
             ),
-            new Promise<BoundedOutcome>((resolve) => {
-                timer = setTimeout(
-                    () => resolve({ status: "timeout" }),
-                    timeoutMs,
-                )
-            }),
+            delay<BoundedOutcome>(
+                timeoutMs,
+                { status: "timeout" },
+                { signal: timeout.signal },
+            ),
         ])
     } finally {
-        clearTimeout(timer)
+        // Cancels the timer. The pending delay then rejects, but the race has
+        // already handled that.
+        timeout.abort()
     }
 }
 
-/** Renders an error (with its stack when available) or any other value. */
+/**
+ * Renders an error (with its stack when available) or any other value.
+ * `Error.isError`, unlike `instanceof`, also recognizes errors from another
+ * realm (e.g. a `node:vm` context).
+ */
 function describe(value: unknown): string {
-    return value instanceof Error
-        ? (value.stack ?? String(value))
-        : String(value)
+    return Error.isError(value) ? (value.stack ?? String(value)) : String(value)
+}
+
+/** Names the type of `value`, telling `null` apart from objects. */
+function typeName(value: unknown): string {
+    return value === null ? "null" : typeof value
 }
 
 /** Throws a `RangeError` unless `value` is a valid timer delay. */
 function assertTimeout(option: string, value: number): void {
-    if (!Number.isFinite(value) || value < 0 || value > MAX_TIMEOUT_MS) {
+    if (!isValidDelay(value)) {
         throw new RangeError(
-            `main: "${option}" must be a finite number between 0 and ${MAX_TIMEOUT_MS}, received ${value}`,
+            `main: "${option}" must be a finite number between 0 and ${MAX_DELAY_MS}, received ${value}`,
         )
     }
 }
@@ -75,7 +79,7 @@ function assertTimeout(option: string, value: number): void {
 function assertOptionalFunction(option: string, value: unknown): void {
     if (value !== undefined && typeof value !== "function") {
         throw new TypeError(
-            `main: "${option}" must be a function, received ${value === null ? "null" : typeof value}`,
+            `main: "${option}" must be a function, received ${typeName(value)}`,
         )
     }
 }
@@ -139,8 +143,9 @@ export type MainOptions = {
     shutdownTimeoutMs?: number
     /**
      * When greater than `0`, logs the memory usage every `monitorMemoryHours`
-     * hours via {@link monitorMemory}. Must be `0` or a positive finite
-     * number. Defaults to `0` (disabled).
+     * hours via {@link monitorMemory}. Must be `0` or an interval that
+     * {@link monitorMemory} accepts (one minute to 2³¹ − 1 ms). Defaults to
+     * `0` (disabled).
      */
     monitorMemoryHours?: number
     /**
@@ -210,7 +215,8 @@ export type MainOptions = {
  *   `shutdown`, or `flushLogs` is not a function.
  * @throws {Error} If another `main` call is still active.
  * @throws {RangeError} If `monitorMemoryHours`, `shutdownTimeoutMs`, or
- *   `flushTimeoutMs` is out of range. Nothing is registered in that case.
+ *   `flushTimeoutMs` is out of range. Nothing is logged or registered in that
+ *   case.
  *
  * @example Without options:
  * ```ts
@@ -256,7 +262,7 @@ export function main(
         (typeof options !== "object" || options === null)
     ) {
         throw new TypeError(
-            `main: "options" must be a MainOptions object, received ${options === null ? "null" : typeof options}`,
+            `main: "options" must be a MainOptions object, received ${typeName(options)}`,
         )
     }
     const {
@@ -272,9 +278,9 @@ export function main(
     assertOptionalFunction("launcher", launcher)
     assertOptionalFunction("shutdown", shutdown)
     assertOptionalFunction("flushLogs", flushLogs)
-    if (!Number.isFinite(monitorMemoryHours) || monitorMemoryHours < 0) {
+    if (monitorMemoryHours !== 0 && !isValidHours(monitorMemoryHours)) {
         throw new RangeError(
-            `main: "monitorMemoryHours" must be 0 (disabled) or a positive finite number, received ${monitorMemoryHours}`,
+            `main: "monitorMemoryHours" must be 0 (disabled) or a finite number ${HOURS_RANGE}, received ${monitorMemoryHours}`,
         )
     }
     assertTimeout("shutdownTimeoutMs", shutdownTimeoutMs)
@@ -292,8 +298,6 @@ export function main(
     __logger.info`Node.js environment: ${env["NODE_ENV"] ?? ""}`
     __logger.debug`Node.js process options: ${execArgv.concat(env["NODE_OPTIONS"] ?? []).join(" | ")}`
 
-    // Started before any handler is registered, since it validates the hours
-    // further and may throw.
     const stopMonitoring =
         monitorMemoryHours > 0
             ? monitorMemory(__logger, monitorMemoryHours)
@@ -320,11 +324,10 @@ export function main(
                 () => shutdown(context),
                 shutdownTimeoutMs,
             )
+            cleanupFailed = outcome.status !== "fulfilled"
             if (outcome.status === "rejected") {
-                cleanupFailed = true
                 __logger.error`Shutdown function failed: ${describe(outcome.reason)}`
             } else if (outcome.status === "timeout") {
-                cleanupFailed = true
                 __logger.error`Shutdown function timed out after ${shutdownTimeoutMs} ms`
             }
         }
@@ -361,9 +364,12 @@ export function main(
         }
     }
 
-    const exitWithFailure = (): void => {
-        process.exit(1)
-    }
+    /** Runs the shutdown sequence for a fatal failure, then exits with `1`. */
+    const fail = (
+        source: Extract<ShutdownContext, { reason: "error" }>["source"],
+        error: unknown,
+    ): Promise<void> =>
+        shutDown({ reason: "error", source, error }, () => process.exit(1))
 
     const onUncaughtException = (
         error: Error,
@@ -371,10 +377,7 @@ export function main(
     ): Promise<void> => {
         __logger.error`Uncaught exception: ${describe(error)}`
         __logger.error`Exception origin: ${origin}`
-        return shutDown(
-            { reason: "error", source: "uncaughtException", error },
-            exitWithFailure,
-        )
+        return fail("uncaughtException", error)
     }
     process.on("uncaughtException", onUncaughtException)
     removeListeners.push(() =>
@@ -383,10 +386,7 @@ export function main(
 
     const onUnhandledRejection = (reason: unknown): Promise<void> => {
         __logger.error`Unhandled promise rejection. Reason:\n${describe(reason)}`
-        return shutDown(
-            { reason: "error", source: "unhandledRejection", error: reason },
-            exitWithFailure,
-        )
+        return fail("unhandledRejection", reason)
     }
     process.on("unhandledRejection", onUnhandledRejection)
     removeListeners.push(() =>
@@ -409,18 +409,10 @@ export function main(
 
     const onLauncherFailure = (error: unknown): Promise<void> => {
         __logger.error`Launcher failed: ${describe(error)}`
-        return shutDown(
-            { reason: "error", source: "launcher", error },
-            exitWithFailure,
-        )
+        return fail("launcher", error)
     }
-    try {
-        const result = launcher?.()
-        if (result !== undefined) {
-            Promise.resolve(result).catch(onLauncherFailure)
-        }
-    } catch (error) {
-        void onLauncherFailure(error)
+    if (launcher !== undefined) {
+        Promise.try(launcher).catch(onLauncherFailure)
     }
 
     return teardown

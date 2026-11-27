@@ -173,16 +173,12 @@ export function isArrayOf<T>(
     value: unknown,
     guard: TypeGuard<T>,
 ): value is T[] {
-    if (!Array.isArray(value)) {
-        return false
-    }
-    // An indexed loop, unlike `every`, also checks the holes of sparse arrays.
-    for (let i = 0; i < value.length; i++) {
-        if (!guard(value[i])) {
-            return false
-        }
-    }
-    return true
+    // An array iterator, unlike `Array#every`, visits the holes of sparse
+    // arrays, as `undefined`.
+    return (
+        Array.isArray(value) &&
+        value.values().every((element: unknown) => guard(element))
+    )
 }
 
 /**
@@ -226,7 +222,7 @@ export function asArrayOf<T>(
  */
 export function filterByGuard<T>(value: unknown, guard: TypeGuard<T>): T[] {
     return Array.isArray(value)
-        ? value.filter((element: unknown) => guard(element))
+        ? value.filter((element: unknown): element is T => guard(element))
         : []
 }
 

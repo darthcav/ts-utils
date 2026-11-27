@@ -54,7 +54,8 @@ import type { Assert, Equal } from "@darthcav/ts-utils/type-testing"
 ```
 
 The `core` entry point imports no Node.js built-ins and no packages, so its helpers run in any
-runtime that supports ES2025 (`millisecondsToString` needs `Intl.DurationFormat`).
+runtime that supports ES2025 (`millisecondsToString` also needs `Intl.DurationFormat` and
+`Temporal`).
 
 ## Usage
 
@@ -226,14 +227,15 @@ unsupported platforms or when the release file cannot be read. The normalized fi
   number.
 
 ```ts
-import { osRelease } from "@darthcav/ts-utils"
+import { asString, osRelease } from "@darthcav/ts-utils"
 
 const info = osRelease()
 if (info) {
-    console.log(info.name)        // e.g. "Ubuntu", "macOS", or "Windows 11"
-    console.log(info.version)     // e.g. "24.04", "15.1", or "10.0.22000"
-    console.log(info.arch)        // e.g. "x64"
-    console.log(info.PRETTY_NAME) // e.g. "Ubuntu 24.04 LTS" (Linux only)
+    console.log(info.name)    // e.g. "Ubuntu", "macOS", or "Windows 11"
+    console.log(info.version) // e.g. "24.04", "15.1", or "10.0.22000"
+    console.log(info.arch)    // e.g. "x64"
+    // Raw keys are `unknown`; narrow them before use.
+    const prettyName = asString(info["PRETTY_NAME"]) // e.g. "Ubuntu 24.04 LTS" (Linux only)
 }
 ```
 
@@ -294,8 +296,8 @@ Optional settings are passed as a `MainOptions` object:
 
 An out-of-range `monitorMemoryHours` (negative, `NaN`, or outside `monitorMemory`'s range),
 `shutdownTimeoutMs`, or `flushTimeoutMs` throws a `RangeError`, and a `launcher`, `shutdown`, or
-`flushLogs` that is not a function throws a `TypeError`, before any handler is registered. If the
-launcher throws or its promise rejects, the failure is logged and the shutdown sequence runs.
+`flushLogs` that is not a function throws a `TypeError`, before anything is logged or registered. If
+the launcher throws or its promise rejects, the failure is logged and the shutdown sequence runs.
 
 The default `flushLogs` disposes the sinks configured through the `@logtape/logtape` copy this
 package uses. If the application configures another copy (e.g. a different LogTape version, whose
@@ -398,6 +400,9 @@ npm run build
 # Run tests
 npm test
 
+# Run tests with coverage (fails below 100%)
+npm run test:coverage
+
 # Lint and format
 npm run lint
 npm run lint:fix
@@ -419,9 +424,11 @@ src/
     main.ts                  #   Process bootstrap and shutdown (main)
     monitorMemory.ts         #   Periodic memory reporting
     osRelease.ts             #   OS release information
+    releaseParsers.ts        #   os-release and plist parsers (internal)
+    delays.ts                #   Timer delay limit and range check (internal)
   loggers/                   # @darthcav/ts-utils/loggers (LogTape helpers)
   type-testing/              # @darthcav/ts-utils/type-testing (type-level assertions)
-  __tests__/                 # Test files (and child-process fixtures)
+  __tests__/                 # Test files, shared helpers, and child-process fixtures
 dist/                        # Compiled output (generated)
 public/                      # Documentation output (generated)
 ```
@@ -432,7 +439,7 @@ public/                      # Documentation output (generated)
 
 [node-version]: https://img.shields.io/badge/node-%3E%3D26-orange.svg?style=flat-square
 [node-url]: https://nodejs.org
-[version-image]: https://img.shields.io/badge/version-1.0.0-blue.svg?style=flat-square
+[version-image]: https://img.shields.io/badge/version-1.0.1-blue.svg?style=flat-square
 [ci-badge]: https://github.com/darthcav/ts-utils/actions/workflows/tests.yml/badge.svg
 [coverage-badge]:
     https://codecov.io/github/darthcav/ts-utils/branch/dev/graph/badge.svg?token=RNEPER4KEI
