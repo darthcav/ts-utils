@@ -7,6 +7,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- `main` now rejects a `monitorMemoryHours` outside `monitorMemory`'s range (e.g. `0.01`, shorter
+  than one minute) with its own `RangeError` message, naming the option and the valid range, instead
+  of the `RangeError` thrown by `monitorMemory`. Valid values and the error type are unchanged.
+
 ## [1.0.0] - 2026-11-22
 
 This release adds subpath entry points, graceful shutdown in `main`, new type guards, and macOS
