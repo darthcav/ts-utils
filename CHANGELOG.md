@@ -7,6 +7,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-11-27
+
 ### Changed
 
 - `main` now rejects a `monitorMemoryHours` outside `monitorMemory`'s range (e.g. `0.01`, shorter
