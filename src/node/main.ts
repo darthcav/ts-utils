@@ -50,11 +50,13 @@ async function runBounded(
     }
 }
 
-/** Renders an error (with its stack when available) or any other value. */
+/**
+ * Renders an error (with its stack when available) or any other value.
+ * `Error.isError`, unlike `instanceof`, also recognizes errors from another
+ * realm (e.g. a `node:vm` context).
+ */
 function describe(value: unknown): string {
-    return value instanceof Error
-        ? (value.stack ?? String(value))
-        : String(value)
+    return Error.isError(value) ? (value.stack ?? String(value)) : String(value)
 }
 
 /** Names the type of `value`, telling `null` apart from objects. */

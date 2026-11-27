@@ -13,6 +13,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   than one minute) with its own `RangeError` message, naming the option and the valid range, instead
   of the `RangeError` thrown by `monitorMemory`. Valid values and the error type are unchanged.
 
+### Fixed
+
+- `main` now logs the stack of errors from another realm (e.g. a `node:vm` context) on fatal
+  failures; they were logged as `String(error)`, without the stack.
+
 ## [1.0.0] - 2026-11-22
 
 This release adds subpath entry points, graceful shutdown in `main`, new type guards, and macOS
