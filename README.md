@@ -400,6 +400,9 @@ npm run build
 # Run tests
 npm test
 
+# Run tests with coverage (fails below 100%)
+npm run test:coverage
+
 # Lint and format
 npm run lint
 npm run lint:fix
