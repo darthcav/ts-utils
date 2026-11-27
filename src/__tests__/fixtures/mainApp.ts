@@ -9,10 +9,11 @@
  */
 
 import process from "node:process"
+import { noop } from "../../core/noop.ts"
 import { getDummyLogger } from "../../loggers/getDummyLogger.ts"
 import { main, type ShutdownContext } from "../../node/main.ts"
 
-const mode = process.argv[2] ?? "signal"
+const mode = process.argv[2]
 
 /** Writes a line and waits until it is flushed (pipes are async on macOS). */
 const report = (line: string): Promise<void> =>
@@ -26,7 +27,7 @@ const describeContext = (context: ShutdownContext): string =>
         : `error:${context.source}`
 
 // Keeps the process alive like a server would, until shutdown.
-const keepAlive = setInterval(() => {}, 60_000)
+const keepAlive = setInterval(noop, 60_000)
 
 main("fixture-app", getDummyLogger(), {
     launcher: async () => {
@@ -41,17 +42,16 @@ main("fixture-app", getDummyLogger(), {
         }
     },
     shutdown: async (context) => {
+        clearInterval(keepAlive)
         await report(`shutdown:${describeContext(context)}`)
         if (mode === "failing-shutdown") {
             throw new Error("cleanup failed")
         }
         if (mode === "hanging-shutdown" || mode === "slow-shutdown") {
-            // Never settles: only `shutdownTimeoutMs` ends the wait. Nothing
-            // else keeps the event loop alive once the interval is cleared.
-            clearInterval(keepAlive)
+            // Never settles: only `shutdownTimeoutMs` ends the wait, since
+            // nothing else keeps the event loop alive.
             await new Promise<void>(() => {})
         }
-        clearInterval(keepAlive)
         await report("shutdown:done")
     },
     shutdownTimeoutMs: mode === "slow-shutdown" ? 30_000 : 500,
